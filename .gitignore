@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets (API keys for LLMs and MCP servers)
+.env
+.env.*
+!.env.example
+
+# Runtime logs (server, runner, nsflow, agent thinking files)
+logs/
+*.log
+
+# Local nsflow/neuro-san SQLite state
+nss_local.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store

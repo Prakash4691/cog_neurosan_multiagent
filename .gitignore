@@ -35,3 +35,8 @@ nss_local.db
 .vscode/
 .idea/
 .DS_Store
+
+.claude/
+scaffold.md
+
+.agents/

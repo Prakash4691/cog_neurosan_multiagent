@@ -15,6 +15,7 @@ FIXTURES = [
     "docs_qa/assistant/out_of_scope_weather.hocon",
     "docs_qa/assistant/follow_up_storage_account_powershell.hocon",
     "docs_qa/assistant/planted_secret_error_log.hocon",
+    "docs_qa/assistant/error_log_root_cause_and_fix.hocon",
     # The Verifier's golden set. Run it alone with: pytest -m integration -k docs_qa_verifier
     "docs_qa/verifier/invalid_grounded.hocon",
     "docs_qa/verifier/invalid_relevant_wrong_version.hocon",

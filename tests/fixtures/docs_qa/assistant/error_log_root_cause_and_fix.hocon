@@ -1,0 +1,38 @@
+# A pasted Error Log gets a reply that names a root cause and a fix (issue 05, spec seam 1). The Coordinator turns the
+# log into an Error Signature with log_signature_extractor, and the signature's library and version (Spring Boot
+# 3.2.5, from the jar) route it to the Context7 Specialist. Unverified: the Verifier loop arrives in issue 06.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """My Spring Boot app won't start. Here is the log:
+
+2024-05-01T10:15:30.123Z ERROR 1 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'dataSource': Failed to instantiate [com.zaxxer.hikari.HikariDataSource]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:326) ~[spring-beans-6.1.6.jar:6.1.6]
+	at com.example.orders.OrdersApplication.main(OrdersApplication.java:10) ~[classes/:na]
+Caused by: org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$DataSourceBeanCreationException: Failed to determine a suitable driver class
+	at org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.determineDriverClassName(DataSourceProperties.java:186) ~[spring-boot-autoconfigure-3.2.5.jar:3.2.5]
+	at org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration.createDataSource(DataSourceConfiguration.java:59) ~[spring-boot-autoconfigure-3.2.5.jar:3.2.5]
+	... 30 common frames omitted
+
+What is wrong and how do I fix it?""",
+            "response": {
+                "text": {
+                    # No gist: the stock gist judge needs OpenAI. The Coordinator's fixed Error Log reply format
+                    # (Root cause and Fix lines, citation markers and a Sources list) is checked with keywords.
+                    # "driver" ties the reply to this error rather than to generic startup advice.
+                    "keywords": ["Root cause:", "Fix:", "driver", "[1]", "Sources", "https://"],
+                    # The reply shows source links, never the raw Evidence Pack.
+                    "not_keywords": ["excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

@@ -14,6 +14,14 @@ FIXTURES = [
     "docs_qa/assistant/cross_domain_react_azure_functions.hocon",
     "docs_qa/assistant/out_of_scope_weather.hocon",
     "docs_qa/assistant/follow_up_storage_account_powershell.hocon",
+    # The Verifier's golden set. Run it alone with: pytest -m integration -k docs_qa_verifier
+    "docs_qa/verifier/invalid_grounded.hocon",
+    "docs_qa/verifier/invalid_relevant_wrong_version.hocon",
+    "docs_qa/verifier/invalid_relevant_no_version_stated.hocon",
+    "docs_qa/verifier/invalid_actionable_no_fix.hocon",
+    "docs_qa/verifier/valid.hocon",
+    "docs_qa/verifier/valid_no_version_stated.hocon",
+    "docs_qa/verifier/valid_cross_domain_unavailable_parts.hocon",
 ]
 
 fixture_runner = DynamicHoconUnitTests(__file__, path_to_basis="../fixtures")

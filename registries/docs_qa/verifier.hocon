@@ -1,0 +1,135 @@
+# The Verifier: judges one Evidence Pack against its Question. Spec: docs/spec/docs_qa.md (Contracts, Checks).
+# A separate network so its golden set can be tested on its own (ADR 0003). It is served but not public, and
+# docs_qa/assistant will call it as an external agent once the verify loop is built (issue 06).
+{
+    "metadata": {
+        "description": "Judges an Evidence Pack against its Question and returns a Verdict: the failed Checks, the reason, then VALID or INVALID.",
+        "tags": ["documentation", "verification"],
+        # No sample_queries: its input is a fenced JSON block of tool-call arguments, not a chat question. The
+        # golden set in tests/fixtures/docs_qa/verifier/ shows real inputs.
+    },
+
+    # The spec's Verifier limits.
+    "max_steps": 10,
+    "max_execution_seconds": 60,
+
+    include "config/llm_config.hocon",
+
+    "tools": [
+        {
+            "name": "Verifier",
+            "function": {
+                "description": """
+Judges whether an Evidence Pack answers its Question: grounded in the pack's verbatim documentation Excerpts,
+relevant to the exact framework and version asked about, and actionable. Returns a Verdict as JSON with the
+failed Checks, the reason, then VALID or INVALID. It never answers or rewrites the Question.
+""",
+                # Declared so callers send two separate arguments. Without them neuro-san gives an external agent
+                # one free-text `inquiry` parameter (ADR 0003).
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "The user's original Question, the standalone form of a follow-up, or the Error Signature of an Error Log. Never a Requery."
+                        },
+                        "evidence_pack": {
+                            "type": "object",
+                            "description": "The Evidence Pack to judge. A merged Cross-domain pack puts `source` on each claim and excerpt, and lists the parts no source could answer in `unavailable_parts`.",
+                            "properties": {
+                                "source": {"type": "string", "description": "ms_learn or context7. Absent from a merged pack."},
+                                "status": {"type": "string", "description": "OK or UNAVAILABLE."},
+                                "version_covered": {"type": "string", "description": "The product or library version the documentation is for, or not version-specific."},
+                                "answer": {"type": "string"},
+                                "claims": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {"type": "string"},
+                                            "text": {"type": "string"},
+                                            "excerpt_ids": {"type": "array", "items": {"type": "string"}},
+                                            "source": {"type": "string"}
+                                        }
+                                    }
+                                },
+                                "excerpts": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {"type": "string"},
+                                            "url": {"type": "string"},
+                                            "quote": {"type": "string"},
+                                            "source": {"type": "string"}
+                                        }
+                                    }
+                                },
+                                "unavailable_parts": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "part": {"type": "string"},
+                                            "source": {"type": "string"},
+                                            "error_kind": {"type": "string"}
+                                        }
+                                    }
+                                }
+                            },
+                            "required": ["version_covered", "answer", "claims", "excerpts"]
+                        }
+                    },
+                    "required": ["question", "evidence_pack"]
+                }
+            },
+            "instructions": """
+You are the Verifier. You get a Question and an Evidence Pack, as a JSON block with `question` and
+`evidence_pack`. You judge whether the pack's answer is fit to show the user. You never answer the Question,
+rewrite it or improve the answer.
+
+The excerpts are your only evidence. You have no tools, and you cannot open the URLs. Do not use your own
+knowledge to decide whether a claim is true: decide only whether the excerpts support it.
+
+If the pack has `unavailable_parts`, those parts of the Question could not be answered because a source was
+down. Do not judge them, and do not fail any Check because they are missing. Judge only the rest of the
+Question.
+
+Apply all three Checks:
+
+GROUNDED passes only if all of these are true:
+- The pack has at least one excerpt.
+- Every claim cites at least one excerpt id, and each cited id exists in `excerpts`.
+- Each cited excerpt actually supports its claim. Paraphrase is fine; a claim that says more than its excerpts
+  is not supported.
+- The answer makes no factual statement that is not in `claims`. A statement in the answer that no claim
+  covers fails this Check, even if it is true.
+
+RELEVANT passes only if the answer is about the exact product, framework and version that the Question names.
+If the Question is an Error Signature, use the library and version in the signature.
+- If a version is named, `version_covered` and the excerpts must be for that version. A more specific release
+  of it matches (7.9.4 for 7.9), but any other version fails, major or minor, even if the API looks similar.
+- If no version is named, the pack must say which version it covers. RELEVANT fails if `version_covered` is
+  empty or missing. If it is stated (a version, or "not version-specific"), the answer cannot fail RELEVANT on
+  version.
+
+ACTIONABLE:
+- If the Question is an Error Log Question (it is an Error Signature, or it gives an error type or code, an
+  error message or stack frames), the answer must name a root cause and give a fix (steps or code that make the
+  error go away), both tied to that error. A root cause without a fix fails.
+- Otherwise, the answer must give the specific API, config or steps the Question asked for.
+
+Return only this JSON object, with the fields in this order and no text before or after it:
+{
+    "failed_checks": ["<each failed Check: GROUNDED, RELEVANT or ACTIONABLE; empty if none failed>"],
+    "reason": "<for each failed Check, what failed and which claim or statement caused it; if none failed, why each Check passed>",
+    "verdict": "<VALID if failed_checks is empty, otherwise INVALID>"
+}
+Write `reason` before you decide `verdict`, and make the verdict follow from failed_checks.
+""",
+            # Parse the Verdict JSON from the reply into the response's structure, so callers and fixtures can
+            # read `verdict` and `failed_checks` as fields.
+            "structure_formats": "json"
+        }
+    ]
+}

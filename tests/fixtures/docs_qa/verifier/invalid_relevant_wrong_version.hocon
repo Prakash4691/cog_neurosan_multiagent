@@ -1,0 +1,91 @@
+# Known-invalid Relevant: the same grounded pack as `valid`, but the Question asks about React Router v5, which has no useNavigate hook.
+# ACTIONABLE is not asserted: an answer with v7's API arguably doesn't give the v5 API that was asked for.
+# PLACEHOLDER: the maintainer replaces this case's contents (spec, Testing Decisions, seam 2). Keep the format: the
+# text is the fenced JSON block of `question` and `evidence_pack` that a real tool call sends. The response asserts
+# the verdict, every Check that must fail (keywords) and every Check that must pass (not_keywords); leave a Check
+# out of both only when the expected outcome is arguable. tests/unit/test_verifier_golden_set_format.py checks it.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/verifier",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """```json
+{
+    "question": "In React Router v5, how do I navigate to another page from code after a form submits?",
+    "evidence_pack": {
+        "source": "context7",
+        "status": "OK",
+        "version_covered": "React Router 7.9.4",
+        "answer": "Import the useNavigate hook from react-router and call it to get a navigate function. Then call navigate with the target path in a success handler, such as navigate(\"/dashboard\"). The docs reserve this hook for navigation without direct user interaction, such as after a form submission.",
+        "claims": [
+            {
+                "id": "c1",
+                "text": "Import the useNavigate hook from react-router for programmatic navigation.",
+                "excerpt_ids": [
+                    "e1",
+                    "e2"
+                ]
+            },
+            {
+                "id": "c2",
+                "text": "Calling useNavigate returns a navigate function.",
+                "excerpt_ids": [
+                    "e3"
+                ]
+            },
+            {
+                "id": "c3",
+                "text": "Call navigate with the target path in a success handler, such as navigate(\"/dashboard\").",
+                "excerpt_ids": [
+                    "e4"
+                ]
+            },
+            {
+                "id": "c4",
+                "text": "The hook is best reserved for navigation without direct user interaction, such as after a form submission.",
+                "excerpt_ids": [
+                    "e1"
+                ]
+            }
+        ],
+        "excerpts": [
+            {
+                "id": "e1",
+                "url": "https://github.com/remix-run/react-router/blob/react-router@7.9.4/docs/start/declarative/navigating.md",
+                "quote": "Demonstrates how to use the `useNavigate` hook from `react-router` for programmatic navigation. This hook is best reserved for scenarios where navigation occurs without direct user interaction, such as after a form submission or a timeout."
+            },
+            {
+                "id": "e2",
+                "url": "https://github.com/remix-run/react-router/blob/react-router@7.9.4/docs/start/declarative/navigating.md",
+                "quote": "import { useNavigate } from \"react-router\";"
+            },
+            {
+                "id": "e3",
+                "url": "https://github.com/remix-run/react-router/blob/react-router@7.9.4/docs/start/declarative/navigating.md",
+                "quote": "  let navigate = useNavigate();"
+            },
+            {
+                "id": "e4",
+                "url": "https://github.com/remix-run/react-router/blob/react-router@7.9.4/docs/start/declarative/navigating.md",
+                "quote": "        onSuccess={() => {\n          navigate(\"/dashboard\");\n        }}"
+            }
+        ]
+    }
+}```""",
+            "response": {
+                # The Verifier's JSON reply is parsed into `structure` (structure_formats = "json").
+                "structure": {
+                    "verdict": {"keywords": ["INVALID"]},
+                    "failed_checks": {
+                        "keywords": ["RELEVANT"],
+                        "not_keywords": ["GROUNDED"]
+                    }
+                }
+            }
+        }
+    ]
+}

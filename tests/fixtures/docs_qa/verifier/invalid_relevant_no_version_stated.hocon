@@ -1,0 +1,59 @@
+# Known-invalid Relevant: neither the Question nor the pack names a version, so the pack must state version_covered, and it is empty.
+# PLACEHOLDER: the maintainer replaces this case's contents (spec, Testing Decisions, seam 2). Keep the format: the
+# text is the fenced JSON block of `question` and `evidence_pack` that a real tool call sends. The response asserts
+# the verdict, every Check that must fail (keywords) and every Check that must pass (not_keywords); leave a Check
+# out of both only when the expected outcome is arguable. tests/unit/test_verifier_golden_set_format.py checks it.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/verifier",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """```json
+{
+    "question": "How do I run cleanup code in a React useEffect when the component unmounts?",
+    "evidence_pack": {
+        "source": "context7",
+        "status": "OK",
+        "version_covered": "",
+        "answer": "Return a cleanup function from useEffect, such as return () => connection.disconnect(); React runs it when the component unmounts.",
+        "claims": [
+            {
+                "id": "c1",
+                "text": "Return a cleanup function from useEffect, and React runs it when the component unmounts.",
+                "excerpt_ids": [
+                    "e1",
+                    "e2"
+                ]
+            }
+        ],
+        "excerpts": [
+            {
+                "id": "e1",
+                "url": "https://github.com/reactjs/react.dev/blob/main/src/content/learn/escape-hatches.md",
+                "quote": "Return a cleanup function from `useEffect` to disconnect from external systems when the component unmounts. In development, React runs setup and cleanup an extra time to verify cleanup logic."
+            },
+            {
+                "id": "e2",
+                "url": "https://github.com/reactjs/react.dev/blob/main/src/content/learn/escape-hatches.md",
+                "quote": "    return () => connection.disconnect();"
+            }
+        ]
+    }
+}```""",
+            "response": {
+                # The Verifier's JSON reply is parsed into `structure` (structure_formats = "json").
+                "structure": {
+                    "verdict": {"keywords": ["INVALID"]},
+                    "failed_checks": {
+                        "keywords": ["RELEVANT"],
+                        "not_keywords": ["GROUNDED", "ACTIONABLE"]
+                    }
+                }
+            }
+        }
+    ]
+}

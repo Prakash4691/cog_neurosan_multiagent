@@ -1,0 +1,67 @@
+# Known-valid Cross-domain pack with unavailable_parts: Context7 was unavailable, so the React part is listed there and not judged. The Microsoft Learn part is grounded, relevant and actionable.
+# PLACEHOLDER: the maintainer replaces this case's contents (spec, Testing Decisions, seam 2). Keep the format: the
+# text is the fenced JSON block of `question` and `evidence_pack` that a real tool call sends. The response asserts
+# the verdict, every Check that must fail (keywords) and every Check that must pass (not_keywords); leave a Check
+# out of both only when the expected outcome is arguable. tests/unit/test_verifier_golden_set_format.py checks it.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/verifier",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """```json
+{
+    "question": "My React app calls an HTTP-triggered Azure Function with fetch. How do I make the request from a React component, and how do I enable CORS on the Function App so the browser allows it?",
+    "evidence_pack": {
+        "status": "OK",
+        "version_covered": "Azure Functions: not version-specific",
+        "answer": "To let the browser call the Function App, add your React app's origin to its allowed CORS origins with az functionapp cors add, passing the app name, the resource group and --allowed-origins.",
+        "claims": [
+            {
+                "id": "ms-c1",
+                "text": "Add the React app's origin to the Function App's allowed origins with az functionapp cors add, passing the app name, the resource group and --allowed-origins.",
+                "excerpt_ids": [
+                    "ms-e1",
+                    "ms-e2"
+                ],
+                "source": "ms_learn"
+            }
+        ],
+        "excerpts": [
+            {
+                "id": "ms-e1",
+                "url": "https://learn.microsoft.com/azure/azure-functions/functions-how-to-use-azure-function-app-settings#platform-features",
+                "quote": "Use the [`az functionapp cors add`](https://learn.microsoft.com/en-us/cli/azure/functionapp/cors#az-functionapp-cors-add) command to add a domain to the allowed origins list.",
+                "source": "ms_learn"
+            },
+            {
+                "id": "ms-e2",
+                "url": "https://learn.microsoft.com/azure/azure-functions/functions-how-to-use-azure-function-app-settings#platform-features",
+                "quote": "az functionapp cors add --name <FUNCTION_APP_NAME> \\\n--resource-group <RESOURCE_GROUP_NAME> \\\n--allowed-origins https://contoso.com",
+                "source": "ms_learn"
+            }
+        ],
+        "unavailable_parts": [
+            {
+                "part": "How to make the fetch request from a React component",
+                "source": "context7",
+                "error_kind": "timeout"
+            }
+        ]
+    }
+}```""",
+            "response": {
+                # The Verifier's JSON reply is parsed into `structure` (structure_formats = "json").
+                "structure": {
+                    "verdict": {"keywords": ["VALID"], "not_keywords": ["INVALID"]},
+                    "failed_checks": {
+                        "not_keywords": ["GROUNDED", "RELEVANT", "ACTIONABLE"]
+                    }
+                }
+            }
+        }
+    ]
+}

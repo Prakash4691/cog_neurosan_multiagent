@@ -1,0 +1,54 @@
+# Known-invalid Actionable: an Error Log Question whose answer gives the root cause but no fix.
+# The question is a stand-in Error Signature; issue 05 defines the real signature format.
+# PLACEHOLDER: the maintainer replaces this case's contents (spec, Testing Decisions, seam 2). Keep the format: the
+# text is the fenced JSON block of `question` and `evidence_pack` that a real tool call sends. The response asserts
+# the verdict, every Check that must fail (keywords) and every Check that must pass (not_keywords); leave a Check
+# out of both only when the expected outcome is arguable. tests/unit/test_verifier_golden_set_format.py checks it.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/verifier",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """```json
+{
+    "question": "Error Signature: InvalidOperationException: Cannot provide a value for property 'Forecaster' on type 'WeatherApp.Client.Pages.Weather'. There is no registered service of type 'WeatherApp.Client.IWeatherForecaster'. Library: ASP.NET Core Blazor, .NET 10. Top frame: Microsoft.AspNetCore.Components.ComponentFactory.InstantiateComponent.",
+    "evidence_pack": {
+        "source": "ms_learn",
+        "status": "OK",
+        "version_covered": "ASP.NET Core 10.0",
+        "answer": "The error happens because IWeatherForecaster is registered only in the .Client project, and the Weather component tries to use it while it is prerendered.",
+        "claims": [
+            {
+                "id": "c1",
+                "text": "A service registered only in the .Client project causes this runtime error when a component uses it during prerendering.",
+                "excerpt_ids": [
+                    "e1"
+                ]
+            }
+        ],
+        "excerpts": [
+            {
+                "id": "e1",
+                "url": "https://learn.microsoft.com/aspnet/core/blazor/fundamentals/dependency-injection?view=aspnetcore-10.0#client-side-services-that-fail-during-prerendering",
+                "quote": "Blazor Web Apps normally prerender client-side WebAssembly components. If an app is run with a required service only registered in the `.Client` project, executing the app results in a runtime error similar to the following when a component attempts to use the required service during prerendering:\n\nInvalidOperationException: Cannot provide a value for {PROPERTY} on type '{ASSEMBLY}}.Client.Pages.{COMPONENT NAME}'. There is no registered service of type '{SERVICE}'."
+            }
+        ]
+    }
+}```""",
+            "response": {
+                # The Verifier's JSON reply is parsed into `structure` (structure_formats = "json").
+                "structure": {
+                    "verdict": {"keywords": ["INVALID"]},
+                    "failed_checks": {
+                        "keywords": ["ACTIONABLE"],
+                        "not_keywords": ["GROUNDED", "RELEVANT"]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+# Known-invalid Grounded: the answer's last sentence is a factual statement that is in no claim and no Excerpt supports it.
+# PLACEHOLDER: the maintainer replaces this case's contents (spec, Testing Decisions, seam 2). Keep the format: the
+# text is the fenced JSON block of `question` and `evidence_pack` that a real tool call sends. The response asserts
+# the verdict, every Check that must fail (keywords) and every Check that must pass (not_keywords); leave a Check
+# out of both only when the expected outcome is arguable. tests/unit/test_verifier_golden_set_format.py checks it.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/verifier",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": """```json
+{
+    "question": "How do I enable a system-assigned managed identity on an Azure App Service app with the Azure CLI?",
+    "evidence_pack": {
+        "source": "ms_learn",
+        "status": "OK",
+        "version_covered": "not version-specific",
+        "answer": "Run az webapp identity assign with your resource group and app name. The command also grants the new identity the Contributor role on the resource group.",
+        "claims": [
+            {
+                "id": "c1",
+                "text": "Run az webapp identity assign with the resource group and app name to enable a system-assigned managed identity.",
+                "excerpt_ids": [
+                    "e1",
+                    "e2"
+                ]
+            }
+        ],
+        "excerpts": [
+            {
+                "id": "e1",
+                "url": "https://learn.microsoft.com/azure/app-service/overview-managed-identity#add-a-system-assigned-identity",
+                "quote": "Run the `az webapp identity assign` command:"
+            },
+            {
+                "id": "e2",
+                "url": "https://learn.microsoft.com/azure/app-service/overview-managed-identity#add-a-system-assigned-identity",
+                "quote": "az webapp identity assign --resource-group <group-name> --name <app-name>"
+            }
+        ]
+    }
+}```""",
+            "response": {
+                # The Verifier's JSON reply is parsed into `structure` (structure_formats = "json").
+                "structure": {
+                    "verdict": {"keywords": ["INVALID"]},
+                    "failed_checks": {
+                        "keywords": ["GROUNDED"],
+                        "not_keywords": ["RELEVANT", "ACTIONABLE"]
+                    }
+                }
+            }
+        }
+    ]
+}

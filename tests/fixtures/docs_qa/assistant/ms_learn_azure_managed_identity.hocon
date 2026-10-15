@@ -1,0 +1,22 @@
+# An Azure question routed to the Microsoft Learn Specialist (issue 02, spec seam 1).
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": "How do I enable a system-assigned managed identity on an Azure App Service app with the Azure CLI?",
+            "response": {
+                "text": {
+                    # The Coordinator labels each source link with the source it came from, so the labels show
+                    # which Specialist answered.
+                    "keywords": ["identity", "[1]", "Sources", "learn.microsoft.com", "(Microsoft Learn)"],
+                    "not_keywords": ["(Context7)", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

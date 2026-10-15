@@ -89,6 +89,23 @@
         "tools": ["get_current_time", "convert_time", "time_by_coordinates", "get_dst_transitions", "search_cities"]
     },
 
+    # Microsoft Learn MCP — search, code samples and full pages from official Microsoft documentation
+    # (Azure, .NET, Microsoft 365, Windows, Power Platform, SQL Server, Entra). For the docs_qa/assistant
+    # Microsoft Learn Specialist. Free; no API key required.
+    # docs_qa/assistant references this exact URL; keep the two in step or this allow list stops applying.
+    # Docs: https://learn.microsoft.com/training/support/mcp
+    "https://learn.microsoft.com/api/mcp": {
+        "tools": ["microsoft_docs_search", "microsoft_code_sample_search", "microsoft_docs_fetch"]
+    },
+
+    # Context7 MCP — current, version-specific documentation for libraries and frameworks. Used by
+    # docs_qa/assistant. Keyless at the anonymous rate limit. To add a key later, set http_headers here.
+    # docs_qa/assistant references this exact URL; keep the two in step or this allow list stops applying.
+    # Docs: https://github.com/upstash/context7
+    "https://mcp.context7.com/mcp": {
+        "tools": ["resolve-library-id", "query-docs"]
+    },
+
     # Uncomment this section to use GitHub Copilot MCP server.
     # Make sure to set the environment variable GITHUB_TOKEN with a valid token.
     # "https://api.githubcopilot.com/mcp": {

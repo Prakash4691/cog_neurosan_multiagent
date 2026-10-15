@@ -11,6 +11,9 @@
 
     "basic/music_nerd.hocon": true,
 
+    # Grounded documentation and error-log assistant. Spec: docs/spec/docs_qa.md.
+    "docs_qa/assistant.hocon": true,
+
     #
     # Agent Network Designer family. Installed so a brand-new project can design agent networks
     # immediately -- the nsflow NEW button, the tutorial, and the docs all assume the designer

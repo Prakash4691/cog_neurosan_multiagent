@@ -1,0 +1,23 @@
+# GitHub Actions used with an Azure product goes to Microsoft Learn (issue 02).
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": "How do I deploy a web app to Azure App Service from a GitHub Actions workflow?",
+            "response": {
+                "text": {
+                    # The Coordinator labels each source link with the source it came from, so the labels show
+                    # which Specialist answered.
+                    # azure/webapps-deploy is the action Microsoft Learn documents for this deployment.
+                    "keywords": ["webapps-deploy", "[1]", "Sources", "learn.microsoft.com", "(Microsoft Learn)"],
+                    "not_keywords": ["(Context7)", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

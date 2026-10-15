@@ -14,17 +14,17 @@ not who makes the product:
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The Microsoft Learn Specialist searches, then runs code-sample search or fetch as needed, and returns an
+- [x] The Microsoft Learn Specialist searches, then runs code-sample search or fetch as needed, and returns an
       Evidence Pack. It never answers from model memory.
-- [ ] The Coordinator's routing follows the glossary's coverage definitions.
-- [ ] Cross-domain and uncertain Questions call both Specialists, and the merged Evidence Pack keeps every Excerpt
+- [x] The Coordinator's routing follows the glossary's coverage definitions.
+- [x] Cross-domain and uncertain Questions call both Specialists, and the merged Evidence Pack keeps every Excerpt
       and its source.
-- [ ] An Out-of-scope Question gets one polite sentence saying what the assistant covers. No Specialist is called.
-- [ ] A follow-up is rewritten into a standalone Question before routing. Specialists never see the conversation
+- [x] An Out-of-scope Question gets one polite sentence saying what the assistant covers. No Specialist is called.
+- [x] A follow-up is rewritten into a standalone Question before routing. Specialists never see the conversation
       history.
-- [ ] Each of these has a passing fixture:
+- [x] Each of these has a passing fixture:
   - an Azure question;
   - a TypeScript question (goes to Context7);
   - a GitHub Actions + Azure deploy question (goes to Microsoft Learn);
@@ -32,4 +32,4 @@ not who makes the product:
   - a React + Azure Functions Cross-domain Question;
   - an Out-of-scope Question;
   - a two-turn follow-up.
-- [ ] `ns validate` passes.
+- [x] `ns validate` passes.

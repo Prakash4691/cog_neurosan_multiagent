@@ -1,0 +1,22 @@
+# A Cross-domain Question goes to both Specialists, and the reply cites both sources (issue 02).
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": "My React app calls an HTTP-triggered Azure Function with fetch. How do I make the request from a React component, and how do I enable CORS on the Function App so the browser allows it?",
+            "response": {
+                "text": {
+                    # The Coordinator labels each source link with the source it came from, so the labels show
+                    # which Specialist answered.
+                    "keywords": ["CORS", "[1]", "[2]", "Sources", "(Microsoft Learn)", "(Context7)"],
+                    "not_keywords": ["excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

@@ -9,18 +9,20 @@ ticket uses.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `pytest` is added as a dev-only dependency. No runtime dependencies are added.
-- [ ] Both MCP servers are registered keyless in the MCP server config, each with a tool allow list:
+- [x] `pytest` is added as a dev-only dependency. No runtime dependencies are added.
+- [x] Both MCP servers are registered keyless in the MCP server config, each with a tool allow list:
       Microsoft Learn (docs search, code-sample search, docs fetch) and Context7 (resolve library ID, query docs).
-- [ ] The Context7 Specialist's server URL is a network-level HOCON value. It matches the URL key in the MCP server
+- [x] The Context7 Specialist's server URL is a network-level HOCON value. It matches the URL key in the MCP server
       config exactly, so the allow list applies.
-- [ ] The Context7 Specialist resolves the library ID, then queries the docs, and returns an Evidence Pack in the
+- [x] The Context7 Specialist resolves the library ID, then queries the docs, and returns an Evidence Pack in the
       spec's shape: source, status, version covered, answer, claims with Excerpt ids, and verbatim Excerpts.
-- [ ] The Specialist never answers from model memory.
-- [ ] The Coordinator shows the user the answer and numbered source links, not the Excerpts.
-- [ ] The network has `max_steps` and `max_execution_seconds` set, using the spec's limits for these two agents.
-- [ ] The network is registered in the manifest, and `ns validate` passes.
-- [ ] An end-to-end data-driven fixture (a React question) passes, asserting with `keywords`/`gist` and a
+- [x] The Specialist never answers from model memory.
+- [x] The Coordinator shows the user the answer and numbered source links, not the Excerpts.
+- [x] The network has `max_steps` and `max_execution_seconds` set, using the spec's limits for these two agents.
+- [x] The network is registered in the manifest, and `ns validate` passes.
+- [x] An end-to-end data-driven fixture (a React question) passes, asserting with `keywords`/`gist` and a
       `success_ratio`, with `timeout_in_seconds = 360`.
+      Asserts with `keywords`/`not_keywords` only: the stock `gist` judge needs OpenAI, so fixtures check the
+      Coordinator's fixed reply markers instead (decided 2026-10-15).

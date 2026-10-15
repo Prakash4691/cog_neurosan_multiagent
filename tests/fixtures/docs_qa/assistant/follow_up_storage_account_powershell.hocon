@@ -1,0 +1,31 @@
+# A follow-up that only makes sense with the first turn's context (issue 02). The second turn never names the
+# storage account, so a reply about creating one shows the follow-up was made standalone before routing.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": "How do I create an Azure Storage account with the Azure CLI?",
+            "response": {
+                "text": {
+                    "keywords": ["az storage account create", "[1]", "Sources", "(Microsoft Learn)"],
+                    "not_keywords": ["excerpt_ids", "\"quote\""]
+                }
+            }
+        },
+        {
+            "text": "What about with PowerShell?",
+            "response": {
+                "text": {
+                    # New-AzStorageAccount is the PowerShell cmdlet that creates a storage account.
+                    "keywords": ["StorageAccount", "[1]", "Sources", "(Microsoft Learn)"],
+                    "not_keywords": ["I can only answer questions about", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

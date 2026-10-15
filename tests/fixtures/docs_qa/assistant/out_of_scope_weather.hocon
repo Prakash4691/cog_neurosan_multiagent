@@ -1,0 +1,22 @@
+# An Out-of-scope Question gets the Coordinator's one-sentence decline and no answer (issue 02).
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 360,
+    "interactions": [
+        {
+            "text": "What will the weather be like in Seattle tomorrow?",
+            "response": {
+                "text": {
+                    # The Coordinator's fixed decline sentence.
+                    "keywords": ["I can only answer questions about"],
+                    # No answer: no citations, no source list, no links, and no forecast from model memory.
+                    "not_keywords": ["[1]", "Sources", "https://", "forecast", "temperature", "°"]
+                }
+            }
+        }
+    ]
+}

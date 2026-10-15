@@ -8,3 +8,16 @@ dependencies = [
     "langchain-ollama>=1.1.0",
     "neuro-san-studio>=0.4.2",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The project root must come before site-packages, or the wheel's own coded_tools package shadows this repo's.
+pythonpath = ["."]
+markers = [
+    "integration: runs a network end to end against the live LLM and MCP servers",
+]

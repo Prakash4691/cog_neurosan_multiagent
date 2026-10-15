@@ -189,6 +189,7 @@ them, and only a short Error Signature goes to the documentation servers.
   3. Send the merged pack to the Verifier.
 
   Sub-questions from one Requerier output together count as a single Attempt.
+
 - **The loop ends at the first of:**
   - a VALID Verdict, which returns the verified answer;
   - the end of the 3rd Attempt, which returns the Unverified Answer;
@@ -209,11 +210,11 @@ them, and only a short Error Signature goes to the documentation servers.
   fails the Grounded Check and leads to a Requery.
 - What happens depends on when and where the source fails:
 
-  | Case | What the user gets |
-  |---|---|
-  | Single-source Question, source fails on Attempt 1 | A reply naming the unavailable source and suggesting they retry later. No answer. |
-  | Source fails on Attempt 2 or 3 | The best earlier attempt as an Unverified Answer, with a "source became unavailable" note. |
-  | Cross-domain Question, one source fails | The merged pack lists the part that couldn't be answered. The Verifier judges only the covered parts. The user gets the verified half plus a note naming the missing part and its source. |
+  | Case                                              | What the user gets                                                                                                                                                                        |
+  | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Single-source Question, source fails on Attempt 1 | A reply naming the unavailable source and suggesting they retry later. No answer.                                                                                                         |
+  | Source fails on Attempt 2 or 3                    | The best earlier attempt as an Unverified Answer, with a "source became unavailable" note.                                                                                                |
+  | Cross-domain Question, one source fails           | The merged pack lists the part that couldn't be answered. The Verifier judges only the covered parts. The user gets the verified half plus a note naming the missing part and its source. |
 
 ### Contracts
 
@@ -252,6 +253,7 @@ verdict:        VALID | INVALID
   For documentation questions, it gives the specific API, config or steps that were asked for.
 
 **The Verifier network's interface:**
+
 - Its Front Man declares exactly two parameters: `question` (a string) and `evidence_pack` (an object in the
   shape above).
 - neuro-san delivers these to the Front Man as a fenced JSON block of the tool-call arguments.
@@ -265,17 +267,18 @@ verdict:        VALID | INVALID
   with `strategy: redact` and `apply_to_input: true`, so the user's message is redacted before the first LLM call.
   There are seven entries: six custom `pii_type` names, each with a regex `detector`, plus the built-in `email`.
 
-  | pii_type | Covers |
-  |---|---|
-  | `connection_string` | ADO.NET/ODBC password and account-key pairs, URIs with credentials (postgres, mongodb, JDBC) |
-  | `bearer_token` | Authorization Bearer headers, JWTs |
-  | `cloud_key` | Azure account keys and SAS signatures, AWS access key IDs, GitHub tokens, `sk-` style API keys |
-  | `secret_assignment` | `password=`, `api_key:`, `client_secret=`, `token=` style key-value pairs |
-  | `private_key` | PEM private key blocks |
-  | `internal_host` | `.local`, `.internal`, `.corp`, `.lan` hostnames, and private IPv4 ranges |
-  | `email` | built-in |
+  | pii_type            | Covers                                                                                         |
+  | ------------------- | ---------------------------------------------------------------------------------------------- |
+  | `connection_string` | ADO.NET/ODBC password and account-key pairs, URIs with credentials (postgres, mongodb, JDBC)   |
+  | `bearer_token`      | Authorization Bearer headers, JWTs                                                             |
+  | `cloud_key`         | Azure account keys and SAS signatures, AWS access key IDs, GitHub tokens, `sk-` style API keys |
+  | `secret_assignment` | `password=`, `api_key:`, `client_secret=`, `token=` style key-value pairs                      |
+  | `private_key`       | PEM private key blocks                                                                         |
+  | `internal_host`     | `.local`, `.internal`, `.corp`, `.lan` hostnames, and private IPv4 ranges                      |
+  | `email`             | built-in                                                                                       |
 
   Public cloud hostnames are not redacted.
+
 - **`log_signature_extractor`** is a deterministic coded tool.
   - The Coordinator calls it on the already-redacted log before routing.
   - It returns only the Error Signature: error type or code, message, library and version, and the top relevant
@@ -298,12 +301,12 @@ verdict:        VALID | INVALID
 
 ### Limits
 
-| Agent | `max_steps` | `max_execution_seconds` | `max_attempts` |
-|---|---|---|---|
-| Coordinator | 60 | 300 | 1 |
-| Specialists | 20 | 90 | default (3) |
-| Verifier | 10 | 60 | default (3) |
-| Requerier | 10 | 60 | default (3) |
+| Agent       | `max_steps` | `max_execution_seconds` | `max_attempts` |
+| ----------- | ----------- | ----------------------- | -------------- |
+| Coordinator | 60          | 300                     | 1              |
+| Specialists | 20          | 90                      | default (3)    |
+| Verifier    | 10          | 60                      | default (3)    |
+| Requerier   | 10          | 60                      | default (3)    |
 
 - The Coordinator uses `max_attempts = 1` because a retryable LLM error would otherwise re-run the whole loop from
   the start.
@@ -313,12 +316,12 @@ verdict:        VALID | INVALID
 
 ### User-facing reply shapes
 
-| Reply type | What it contains |
-|---|---|
-| Verified answer | The answer, numbered source links, and a footer saying it was verified against N documentation Excerpts. Excerpts themselves are not shown. |
-| Unverified Answer | The same as a verified answer, plus a warning line at the top with the Verifier's reason. |
-| Out-of-scope Question | One polite sentence saying what the assistant covers. |
-| Unavailable Source | Which source is unavailable, and a suggestion to retry later. Plus any verified partial answer (see Unavailable Source above). |
+| Reply type            | What it contains                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verified answer       | The answer, numbered source links each labelled with its source (Microsoft Learn or Context7), and a footer saying it was verified against N documentation Excerpts. Excerpts themselves are not shown. |
+| Unverified Answer     | The same as a verified answer, plus a warning line at the top with the Verifier's reason.                                                   |
+| Out-of-scope Question | One polite sentence saying what the assistant covers.                                                                                       |
+| Unavailable Source    | Which source is unavailable, and a suggestion to retry later. Plus any verified partial answer (see Unavailable Source above).              |
 
 ### Dependencies
 
@@ -327,6 +330,7 @@ verdict:        VALID | INVALID
 ## Testing Decisions
 
 **What makes a good test here:**
+
 - Test what a caller can observe at a network's entry point or a tool's interface: the reply, the Verdict, the
   Error Signature, the redacted text.
 - Never test internal prompts or which tool an agent happened to call.
@@ -396,6 +400,7 @@ The dead port only simulates a **connection failure**. It doesn't produce an HTT
 connection hangs instead of being refused) is checked.
 
 **Prior art:**
+
 - This repo has no tests yet.
 - Copy the fixture format from upstream neuro-san-studio's integration fixtures, documented in neuro-san's test
   case HOCON reference.
@@ -423,7 +428,7 @@ These are decided for v1, so the build should not re-open them:
 
 ## Further Notes
 
-- **The LLM is a cloud model.** Every agent uses the shared `glm-5.3:cloud` model through Ollama Cloud. That's why
+- **The LLM is a cloud model.** Every agent uses the shared `glm-5.3-flash:cloud` model through Ollama Cloud. That's why
   redaction must happen before the Coordinator's first model call, and not in a tool (ADR 0002).
 - **The verify loop is slow.** The worst case is about 15–25 LLM calls. Tune the step and time limits after the
   first golden-set runs.

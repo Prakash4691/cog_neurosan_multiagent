@@ -20,3 +20,8 @@ signature goes to Specialists and MCP servers.
 - Do not move the redaction regexes into the coded tool. That would bring the cloud-LLM leak back.
 - Checked on langchain 1.4.5: custom `pii_type` names with a string `detector` redact the message in place
   (for example `[REDACTED_CONNECTION_STRING]`).
+- `PIIMiddleware` redacts only the newest user message, but neuro-san saves the raw message to chat history and
+  sends it again on every later turn. So each entry uses `AllTurnsPIIMiddleware`
+  (`middleware/docs_qa/all_turns_pii_middleware.py`): a `PIIMiddleware` subclass with the same args that redacts
+  every user message before each LLM call. It relies on the parent's private `_process_content`, so check it when
+  langchain is upgraded (the unit test `test_secrets_from_earlier_turns_are_redacted_again` catches a break).

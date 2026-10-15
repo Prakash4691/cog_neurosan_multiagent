@@ -88,7 +88,103 @@ For each user message:
      this list.
    Do not show the excerpts, their quotes or ids, or the raw JSON.
 """,
-            "tools": ["MicrosoftLearnSpecialist", "Context7Specialist"]
+            "tools": ["MicrosoftLearnSpecialist", "Context7Specialist"],
+            # Redacts secrets in the user's messages before every Coordinator LLM call (ADR 0002). Each entry is a
+            # PIIMiddleware subclass with the same args that also redacts earlier turns, because neuro-san sends the
+            # raw chat history again with each new turn. The entries run in this order, and the order matters:
+            # - private_key runs before secret_assignment, which would otherwise match only the first line of a key
+            #   stored under a name such as "private_key".
+            # - email runs before internal_host, so an address on an internal domain is redacted whole.
+            # Public cloud hostnames are kept, except that the built-in email detector also takes user@host
+            # forms such as git@github.com (the spec requires the built-in detector). Detectors are raw triple-quoted strings, so "\" is a regex
+            # escape. Do not move these regexes into a coded tool (ADR 0002).
+            # See https://docs.langchain.com/oss/python/langchain/middleware/built-in#pii-detection
+            "middleware": [
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "private_key",
+                        # A PEM block, or everything after its BEGIN line when the END line was cut off.
+                        "detector": """-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----|\Z)""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "connection_string",
+                        # ADO.NET/ODBC password and key pairs (also DB_PWD= style names, and quoted or {braced}
+                        # values that hold spaces or ";"), then the user:password part of a URI (postgres, mongodb,
+                        # JDBC). The URI's scheme and host are kept so the log still says what failed to connect.
+                        "detector": """(?i:(?<![a-z0-9])(?:password|pwd|accountkey|sharedaccesskey)\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^;\s'"]+))|(?<=://)[^\s:/@]*:[^\s@]+(?=@)""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "bearer_token",
+                        # An Authorization Bearer value, then a bare JWT. The 20-character floor keeps prose such as
+                        # "Bearer token was not provided" and 'Bearer error="invalid_token"'.
+                        "detector": """(?i:\bbearer\s+)[A-Za-z0-9._~+/-]{20,}=*|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "cloud_key",
+                        # Azure account keys (86 base64 characters and "=="), SAS signatures, AWS access key IDs,
+                        # GitHub tokens, then sk- style API keys.
+                        "detector": """(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{86}==|(?i:\bsig=)[A-Za-z0-9%+/=]+|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})|\bsk-[A-Za-z0-9_-]{16,}""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "secret_assignment",
+                        # A key whose name ends in password, secret, token, credential, api key, access key,
+                        # private key or a separate "pass" (DB_PASS), then "=" or ":", then a value: env files, YAML,
+                        # JSON and query strings. Ending in the word keeps settings such as max_tokens and
+                        # token_type, and the (?<![:/]) keeps ARNs such as arn:aws:...:secret:name. The key name is
+                        # redacted with the value. A value already redacted by an earlier entry is skipped.
+                        "detector": """(?i:(?<![:/])\b(?:[\w.-]*(?:password|passwd|secret|token|credentials?|api[_-]?key|access[_-]?key|private[_-]?key)|(?:[\w.-]*[_.-])?pass)["']?\s*[:=]\s*)(?!["']?\[REDACTED_)(?:"[^"]*"|'[^']*'|[^\s"',;&]+)""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "email",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                },
+                {
+                    "class": "middleware.docs_qa.all_turns_pii_middleware.AllTurnsPIIMiddleware",
+                    "args": {
+                        "pii_type": "internal_host",
+                        # Hostnames ending in .local, .internal, .corp or .lan, then private IPv4 addresses
+                        # (10/8, 172.16/12, 192.168/16). Generic suffixes only: no organization suffixes (spec, Out of
+                        # Scope). What is kept, and why:
+                        # - the suffix must be lowercase, so PascalCase namespaces such as Contoso.Corp and
+                        #   Microsoft.EntityFrameworkCore.Internal are not hostnames;
+                        # - a following ".word" means a file name (appsettings.local.json) or a public host
+                        #   (x.internal.cloudapp.net);
+                        # - an address ending in .0 is a network address or a .NET version (10.0.0.0), never a host,
+                        #   and one after "Version=" is a .NET assembly version.
+                        "detector": """\b(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+(?:local|internal|corp|lan)(?!\.?[\w-])|(?<![\w.])(?<!Version=)(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?<!\.0)(?!\.?\d)""",
+                        "strategy": "redact",
+                        "apply_to_input": true
+                    }
+                }
+            ]
         },
         {
             "name": "MicrosoftLearnSpecialist",

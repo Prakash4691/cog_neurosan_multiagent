@@ -266,6 +266,9 @@ verdict:        VALID | INVALID
 - **Redaction runs first.** The Coordinator runs LangChain `PIIMiddleware` (confirmed present in langchain 1.4.5)
   with `strategy: redact` and `apply_to_input: true`, so the user's message is redacted before the first LLM call.
   There are seven entries: six custom `pii_type` names, each with a regex `detector`, plus the built-in `email`.
+  Each entry is an `AllTurnsPIIMiddleware`: a `PIIMiddleware` subclass that takes the same args but redacts every
+  user message in the conversation. neuro-san sends the raw chat history with each new turn, and plain
+  `PIIMiddleware` redacts only the newest message, so a secret from an earlier turn would reach the LLM.
 
   | pii_type            | Covers                                                                                         |
   | ------------------- | ---------------------------------------------------------------------------------------------- |
@@ -417,8 +420,9 @@ These are decided for v1, so the build should not re-open them:
 - **No re-fetching of URLs by the Verifier.** The Excerpts are the grounding evidence.
 - **No automatic retry when a source is unavailable.**
 - **No answers to Out-of-scope Questions.** That includes answers from model knowledge, even when labelled.
-- **No custom middleware class.** Redaction is `PIIMiddleware` config. A custom class that also swaps the log for
-  its signature was considered and deferred (ADR 0002).
+- **No custom redaction logic.** Redaction is `PIIMiddleware` config. The only custom class is
+  `AllTurnsPIIMiddleware`, which applies the same config to earlier turns too. A custom class that also swaps the
+  log for its signature was considered and deferred (ADR 0002).
 - **No redaction before the user's message reaches the server.** Redaction starts at the Coordinator's first
   model call.
 - **No Attempt counter in code.** Revisit only if testing shows the model overruns the cap.

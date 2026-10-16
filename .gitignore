@@ -36,7 +36,6 @@ nss_local.db
 .idea/
 .DS_Store
 
-.claude/
 scaffold.md
 
 .agents/

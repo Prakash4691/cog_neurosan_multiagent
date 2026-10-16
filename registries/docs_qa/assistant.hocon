@@ -316,17 +316,25 @@ Then return only this JSON object, with no text before or after it:
     "source": "ms_learn",
     "status": "OK",
     "version_covered": "<the product and version the documentation is for, such as .NET 8, or not version-specific>",
-    "answer": "<a concise answer to the Question>",
-    "claims": [
-        {"id": "c1", "text": "<one factual statement from the answer>", "excerpt_ids": ["e1"]}
-    ],
     "excerpts": [
         {"id": "e1", "url": "<the source URL of the excerpt>", "quote": "<text copied verbatim from the tool result>"}
-    ]
+    ],
+    "claims": [
+        {"id": "c1", "text": "<one factual statement that its excerpts say>", "excerpt_ids": ["e1"]}
+    ],
+    "answer": "<the claims, put together as a concise answer to the Question>"
 }
 
+Write the fields in this order: choose the excerpts first, then write the claims from them, then write the
+answer from the claims.
+
 Rules:
-- Every factual statement in `answer` is also a claim, and every claim cites at least one excerpt that supports it.
+- Every claim cites at least one excerpt, and states only what its cited excerpts say. Do not generalize: a
+  parameter, option or behavior that the excerpts document for one command, API, setting or plan is not a claim
+  about another one.
+- `answer` is made only of the claims, in your own words. Add no other statement: no extra caveat, tip,
+  recommendation, parenthetical aside or detail, even when you are sure it is true. Leave out anything the
+  Question does not ask for.
 - Each quote is copied character for character from a tool result you got for this Question. Never write or edit
   a quote yourself. Code is allowed in a quote.
 - Each url is where the quote came from: a search result's contentUrl, a code sample's link, or the URL of a
@@ -382,17 +390,25 @@ Then return only this JSON object, with no text before or after it:
     "source": "context7",
     "status": "OK",
     "version_covered": "<the library and version the documentation is for, such as React 19.1, or not version-specific>",
-    "answer": "<a concise answer to the Question>",
-    "claims": [
-        {"id": "c1", "text": "<one factual statement from the answer>", "excerpt_ids": ["e1"]}
-    ],
     "excerpts": [
         {"id": "e1", "url": "<the source URL of the excerpt>", "quote": "<text copied verbatim from the tool result>"}
-    ]
+    ],
+    "claims": [
+        {"id": "c1", "text": "<one factual statement that its excerpts say>", "excerpt_ids": ["e1"]}
+    ],
+    "answer": "<the claims, put together as a concise answer to the Question>"
 }
 
+Write the fields in this order: choose the excerpts first, then write the claims from them, then write the
+answer from the claims.
+
 Rules:
-- Every factual statement in `answer` is also a claim, and every claim cites at least one excerpt that supports it.
+- Every claim cites at least one excerpt, and states only what its cited excerpts say. Do not generalize: a
+  parameter, option or behavior that the excerpts document for one command, API, setting or plan is not a claim
+  about another one.
+- `answer` is made only of the claims, in your own words. Add no other statement: no extra caveat, tip,
+  recommendation, parenthetical aside or detail, even when you are sure it is true. Leave out anything the
+  Question does not ask for.
 - Each quote is copied character for character from a tool result you got for this Question. Never write or edit
   a quote yourself. Code is allowed in a quote.
 - Each url is the "Source:" URL that the tool result gives above that text.
@@ -446,8 +462,9 @@ is the pack's `unavailable_parts`: their source is down, so never ask for those 
 Use the reason to decide how to change the Question:
 - GROUNDED failed because the pack has no excerpts, or too few: rephrase the Question in the terms the
   documentation is likely to use, or split it into smaller Questions that are easier to look up.
-- GROUNDED failed because a claim or statement is not supported: ask the whole Question again, and ask
-  specifically for what that claim or statement needed.
+- GROUNDED failed because a claim or statement is not supported: ask the whole Question again. If the Question
+  asks for what that claim or statement says, ask specifically for it. If the Question does not ask for it, do
+  not ask for it: it was an extra, and the next answer should leave it out.
 - RELEVANT failed because the documentation is for the wrong product, framework or version: name the exact one
   the Question asks about, and put its version next to its name as part of the library name, as in "Vue 2" or
   "React Router v5". Say which version the pack covered, and that documentation for it is not wanted.

@@ -8,8 +8,7 @@ checked against) or the best attempt, marked unverified with the reason.
 
 **Blocked by:** 02, 03
 
-**Status:** completed, except fixture tuning: `verified_answer_footer` and `unverified_ungroundable_question` pass
-only 1 of 3 samples. Tune them after 07, which changes the Attempt-3 outage case (maintainer, 2026-10-16).
+**Status:** completed (2026-10-16). Fixture tuning done after 07: see "Grounded tuning" in Notes.
 
 - [x] The Coordinator calls the Verifier network through a same-server reference, passing `question` and
       `evidence_pack`.
@@ -24,7 +23,7 @@ only 1 of 3 samples. Tune them after 07, which changes the Attempt-3 outage case
 - [x] The reply shapes match the spec: the verified-answer footer, and the warning line for an Unverified Answer.
 - [x] The limits match the spec's table. The Coordinator has `max_attempts = 1`, and the assistant network sets
       `request_timeout_seconds = 540` at the top level (raised from 360 with the maintainer, see Notes).
-- [ ] Passing end-to-end fixtures for:
+- [x] Passing end-to-end fixtures for:
   - a verified answer;
   - a Question that can't be grounded and ends as an Unverified Answer;
   - a Requery that recovers a wrong-version first answer.
@@ -70,4 +69,24 @@ only 1 of 3 samples. Tune them after 07, which changes the Attempt-3 outage case
 - Prompt tuning for the two 1-of-3 fixtures is deferred (maintainer, 2026-10-16). The unapproved additions found in
   review (one call per Specialist, the Requerier's "ask only about the subject" line, `p1-`/`p2-` ids, `use_direct`)
   are kept.
-
+- Grounded tuning (2026-10-16, after 07):
+  - The cause, from 5 INVALID Verdicts in the 07 manual-check traces:
+    - All 5 failed Grounded, and the Verifier applied the spec correctly each time.
+    - The Specialists' packs were wrong: `answer` had statements that no claim covered (caveats, asides such as
+      "(StrictMode)", closing advice), and claims said more than their excerpts. The usual case was a parameter
+      documented for one command, written as true for all the related commands.
+    - The Requerier made it worse. Its rule "ask specifically for what that claim needed" turned off-topic
+      statements (deployment slots, PowerShell) into Requeries, which widened the subject.
+  - Changes, in `registries/docs_qa/assistant.hocon` only (the Verifier is unchanged):
+    - Both Specialists write the pack in evidence order: `excerpts`, then `claims`, then `answer`, so the answer
+      is built from the claims. This is the same idea as the Verifier's reason-before-verdict order.
+    - New rules: a claim says only what its excerpts say and never generalizes to another command, API,
+      setting or plan; `answer` is made only of the claims, with no extra caveat, tip or aside.
+    - The Requerier asks for an unsupported statement only if the Question asks for it.
+  - Results:
+    - `verified_answer_footer` and `unverified_ungroundable_question` both passed (320 s together). The driver
+      doesn't report per-sample counts for a pass, so it was at least 2 of 3 each.
+    - `requery_recovers_failed_first_answer` passed (111 s).
+    - A traced direct run of the 07 Cross-domain question (React fetch + Azure Functions CORS, both sources
+      up) was VALID on Attempt 1 with 13 Excerpts. Before the change, the same question failed Grounded in all
+      3 Attempts.

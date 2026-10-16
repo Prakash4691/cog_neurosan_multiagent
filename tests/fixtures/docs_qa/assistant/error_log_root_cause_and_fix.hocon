@@ -1,8 +1,8 @@
 # A pasted Error Log gets a reply that names a root cause and a fix (issue 05, spec seam 1). The Coordinator turns the
 # log into an Error Signature with log_signature_extractor, and the signature's library and version (Spring Boot
 # 3.2.5, from the jar) route it to the Context7 Specialist. The reply may be verified or an Unverified Answer: both
-# keep the Root cause and Fix lines. Context7 has no Spring Boot 3.2.x docs, so it can't end verified: the verified
-# error-log replies are error_log_verified_root_cause_and_fix and error_log_version_from_signature (issue 08).
+# keep the Root cause and Fix lines. Context7 has no Spring Boot 3.2.x docs, so it can't end verified (see issue 08,
+# whose fixtures error_log_verified_root_cause_and_fix and error_log_version_from_signature assert verified replies).
 # Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
 {
     "agent": "docs_qa/assistant",

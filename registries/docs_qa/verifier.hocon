@@ -105,9 +105,8 @@ GROUNDED passes only if all of these are true:
 - The answer makes no factual statement that is not in `claims`. A statement in the answer that no claim
   covers fails this Check, even if it is true.
 
-RELEVANT passes only if the answer is about the exact product, framework and version that the Question names.
-If the Question contains an Error Signature, the library and version in the signature are named by the Question,
-even when the user's own words name no version.
+RELEVANT passes only if the answer is about the exact product, framework and version that the Question or its
+Error Signature names. The signature's library and version count even when the user's own words name no version.
 - If a version is named, `version_covered` and the excerpts must be for that version. A more specific release
   of it matches (7.9.4 for 7.9), but any other version fails, major or minor, even if the API looks similar.
 - If no version is named, the pack must say which version it covers. RELEVANT fails if `version_covered` is

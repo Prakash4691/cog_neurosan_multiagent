@@ -26,11 +26,11 @@ What is wrong and how do I fix it?""",
             "response": {
                 "text": {
                     # No gist: the stock gist judge needs OpenAI. The Error Log reply format (Root cause and Fix
-                    # lines) and the verified-answer footer are checked with keywords. "prerender" ties the reply
-                    # to this error's documented cause rather than to generic dependency injection advice.
+                    # lines) and the start of the verified-answer footer are checked with keywords. The full footer
+                    # shape is checked by verified_answer_footer. "prerender" ties the reply to this error's
+                    # documented cause rather than to generic dependency injection advice.
                     "keywords": [
-                        "Root cause:", "Fix:", "prerender", "[1]", "Sources", "(Microsoft Learn)",
-                        "Verified against", "documentation Excerpts"
+                        "Root cause:", "Fix:", "prerender", "[1]", "Sources", "(Microsoft Learn)", "Verified against"
                     ],
                     "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
                 }

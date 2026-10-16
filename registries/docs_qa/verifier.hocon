@@ -1,6 +1,6 @@
 # The Verifier: judges one Evidence Pack against its Question. Spec: docs/spec/docs_qa.md (Contracts, Checks).
 # A separate network so its golden set can be tested on its own (ADR 0003). It is served but not public, and
-# docs_qa/assistant will call it as an external agent once the verify loop is built (issue 06).
+# docs_qa/assistant's Coordinator calls it as the external agent /docs_qa/verifier.
 {
     "metadata": {
         "description": "Judges an Evidence Pack against its Question and returns a Verdict: the failed Checks, the reason, then VALID or INVALID.",
@@ -9,9 +9,9 @@
         # golden set in tests/fixtures/docs_qa/verifier/ shows real inputs.
     },
 
-    # The spec's Verifier limits.
+    # The spec's Verifier limits. A merged Cross-domain or Requery pack took over 60 seconds in the first loop runs.
     "max_steps": 10,
-    "max_execution_seconds": 60,
+    "max_execution_seconds": 120,
 
     include "config/llm_config.hocon",
 

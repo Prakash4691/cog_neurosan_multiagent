@@ -1,0 +1,27 @@
+# A Question that no documentation can ground ends as an Unverified Answer after 3 Attempts (issue 06). The Azure
+# service it names does not exist, so no Attempt can pass the Grounded Check, and the reply starts with the warning
+# line. It uses Microsoft Learn, which has no anonymous quota, so the fixture does not depend on Context7's.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 540,
+    "interactions": [
+        {
+            "text": "How do I configure the retry backoff policy for the Azure Quantum Flux Cache client in its .NET SDK?",
+            "response": {
+                "text": {
+                    # The Coordinator's fixed Unverified Answer warning line starts with "Not verified:".
+                    "keywords": ["Not verified:"],
+                    # Not declined as Out of scope, and never shown as verified.
+                    "not_keywords": ["Verified against", "I can only answer questions about", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

@@ -40,3 +40,5 @@ nss_local.db
 scaffold.md
 
 .agents/
+
+graphify-out/

@@ -17,8 +17,16 @@
     "context7_mcp_url": "https://mcp.context7.com/mcp",
 
     # Defaults for every agent, set to the spec's Coordinator limits. Every other agent must set its own.
-    "max_steps": 60,
-    "max_execution_seconds": 300,
+    # max_steps is LangGraph's recursion limit, and every Coordinator middleware entry adds a before_model and an
+    # after_model step to each LLM call, so one tool round costs about 16 steps. The 3-Attempt loop needs up to about
+    # 210 (an Error Log, with Specialists called one at a time).
+    "max_steps": 240,
+    # A 3-Attempt loop takes about 370 seconds: the Coordinator writes each Evidence Pack out again for the Verifier
+    # and the Requerier, and the Verifier needs up to about 70 seconds for a merged pack.
+    "max_execution_seconds": 480,
+    # Aborts a hung HTTP chat request (the nsflow UI and the HTTP API). An in-process `ns chat` session does not
+    # enforce it, and there the Coordinator's max_execution_seconds is the guard.
+    "request_timeout_seconds": 540,
 
     include "registries/expertise_scoping_instructions.hocon",
     include "config/llm_config.hocon",
@@ -76,25 +84,47 @@ For each user message:
      only this sentence:
      Sorry, I can only answer questions about Microsoft products, libraries and frameworks, using their official documentation.
 
-4. Call each chosen Specialist with the Question as `question`. Each returns an Evidence Pack as JSON with these
-   fields: source, status, version_covered, answer, claims (each with excerpt_ids) and excerpts (each with id,
-   url and verbatim quote).
+4. Run the Question through Attempts, at most 3. The Question from steps 1 and 2 is the original Question: keep
+   it unchanged for the whole loop, because every Attempt is judged against it. In Attempt 1 the Specialists
+   chosen in step 3 get the Question, or for a Cross-domain Question the part of it that step 3 gives each one. In
+   Attempts 2 and 3 each Requery from the Requerier goes to the Specialist it suggests. One Attempt is:
+   a. Call each Specialist with its Question, part or Requery as `question`. In Attempts 2 and 3, make one call
+      per Requery: all the Requeries from one Requerier output together make one Attempt, however many there
+      are. Each Specialist returns an Evidence Pack as JSON with these fields: source, status, version_covered,
+      answer, claims (each with excerpt_ids) and excerpts (each with id, url and verbatim quote). Call a
+      Specialist once per Question, part or Requery, never again with the same one. If it returns no Evidence
+      Pack (an error or a timeout), its pack has status UNAVAILABLE.
+   b. If any pack's status is not OK, stop and do not answer the Question. Say which documentation source is
+      unavailable (Microsoft Learn or Context7), and suggest the user try again later.
+   c. If the Attempt got more than one pack, merge them into one Evidence Pack (step 5).
+   d. Call __docs_qa__verifier with `question` set to the original Question, never a Requery, and
+      `evidence_pack` set to the Attempt's pack (or merged pack), unchanged. It returns a Verdict as JSON:
+      failed_checks, reason and verdict. Call it once per Attempt, never again for the same pack. If it returns
+      no Verdict (an error or a timeout), the Verdict is INVALID, with failed_checks GROUNDED, RELEVANT and
+      ACTIONABLE and the reason "The Verifier did not return a Verdict."
+   e. If the verdict is VALID, stop and write the verified reply (step 7).
+   f. If the verdict is INVALID and this was Attempt 3, stop. Never start a 4th Attempt. Choose the Unverified
+      Answer (step 6) and write its reply (step 7).
+   g. Otherwise call Requerier with `question` set to the original Question, `evidence_pack` set to the pack
+      that failed, and `reason` set to the Verdict's reason. It returns JSON with a `requeries` list, each with
+      a `question` and a `specialist`. Start the next Attempt with those Requeries.
 
-5. If any pack's status is not OK, do not answer the Question. Say which documentation source is unavailable
-   (Microsoft Learn or Context7), and suggest the user try again later.
-
-6. If you called both Specialists, merge their two packs into one Evidence Pack:
-   - Keep every claim and every excerpt from both packs. Never drop, shorten or edit one.
+5. To merge packs:
+   - Keep every claim and every excerpt from every pack. Never drop, shorten or edit one.
    - Give each claim and excerpt a `source` field with the `source` of the pack it came from.
-   - Make the ids unique: prefix the Microsoft Learn pack's claim and excerpt ids with "ms-" and the Context7
-     pack's with "c7-", in the ids and in every excerpt_ids list.
-   - `answer` holds both answers. `version_covered` names what each pack covers, such as
+   - Make the ids unique: prefix the first pack's claim and excerpt ids with "p1-", the second pack's with
+     "p2-", and so on, in the ids and in every excerpt_ids list.
+   - `answer` holds every pack's answer. `version_covered` names what each pack covers, such as
      "Azure Functions: not version-specific; React 19.1".
 
-7. If the pack (or merged pack) has no excerpts, do not answer the Question. Say that the documentation did not
-   cover it.
+6. To choose the Unverified Answer from the 3 failed Attempts, compare their Verdicts in this order:
+   - An Attempt that passed GROUNDED beats one whose failed_checks include GROUNDED.
+   - Then the Attempt with fewer failed Checks wins.
+   - If they still tie, the later Attempt wins.
+   Its pack is the pack for the reply, and its Verdict's reason is the reason in the warning line.
 
-8. Otherwise write the reply for the user:
+7. Write the reply for the user from the chosen pack: the VALID Attempt's pack, or the Unverified Answer's.
+   - For an Unverified Answer, the first line is "Not verified: " followed by that Attempt's Verdict reason.
    - The answer, taken from the pack's `answer` and `claims`. Add nothing that is not in them.
    - For an Error Log, the answer starts with a line beginning "Root cause:" that names the likely cause of the
      error in the Error Signature, then a line "Fix:" followed by numbered fix steps.
@@ -104,10 +134,19 @@ For each user message:
    - One line saying which version the answer covers, from `version_covered`.
    - A "Sources" section: the numbered list of those URLs. After each URL, write the source it came from:
      "(Microsoft Learn)" for ms_learn and "(Context7)" for context7. Every number you used in the answer is in
-     this list.
-   Do not show the excerpts, their quotes or ids, or the raw JSON.
+     this list. Leave the section out if the pack has no excerpts.
+   - For a verified answer, the last line is "Verified against N documentation Excerpts.", where N is the number
+     of excerpts in the pack.
+   Do not show the excerpts, their quotes or ids, the Verdict JSON, or any other raw JSON.
 """,
-            "tools": ["log_signature_extractor", "MicrosoftLearnSpecialist", "Context7Specialist"],
+            # /docs_qa/verifier is a same-server reference to the Verifier network (ADR 0003). Its LLM tool name is
+            # __docs_qa__verifier.
+            "tools": [
+                "log_signature_extractor", "MicrosoftLearnSpecialist", "Context7Specialist", "Requerier",
+                "/docs_qa/verifier"
+            ],
+            # A retryable LLM error would otherwise rerun the whole verify loop from the start.
+            "max_attempts": 1,
             # Redacts secrets in the user's messages before every Coordinator LLM call (ADR 0002). Each entry is a
             # PIIMiddleware subclass with the same args that also redacts earlier turns, because neuro-san sends the
             # raw chat history again with each new turn. The entries run in this order, and the order matters:
@@ -331,6 +370,80 @@ Rules:
             "tools": [${context7_mcp_url}],
             "max_steps": 20,
             "max_execution_seconds": 90
+        },
+        {
+            "name": "Requerier",
+            "function": {
+                "description": """
+Turns a failed Attempt into one or more Requeries: rewritten or split forms of the original Question for the next
+Attempt, each with the Specialist that should answer it. It never answers the Question.
+""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "The user's original Question, or the standalone form of a follow-up, including any Error Signature. Never an earlier Requery."
+                        },
+                        "evidence_pack": {
+                            "type": "object",
+                            "description": "The Evidence Pack the Verifier rejected, exactly as it was sent to the Verifier."
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "The rejected Verdict's reason: which Checks failed and why."
+                        }
+                    },
+                    "required": ["question", "evidence_pack", "reason"]
+                }
+            },
+            "instructions": """
+You are the Requerier. You get a Question, the Evidence Pack that was given for it, and the Verifier's reason for
+rejecting that pack. You write the Requeries for the next Attempt: new forms of the Question that are more
+likely to get documentation that answers it. You never answer the Question, and a Requery never contains an
+answer or a guess at one.
+
+The answers to your Requeries replace the failed pack completely: nothing from it carries over, and they are
+judged together against the whole Question. So your Requeries must together ask for everything the Question
+asks for, including the parts the failed pack got right, never only for the part that failed.
+
+Use the reason to decide how to change the Question:
+- GROUNDED failed because the pack has no excerpts, or too few: rephrase the Question in the terms the
+  documentation is likely to use, or split it into smaller Questions that are easier to look up.
+- GROUNDED failed because a claim or statement is not supported: ask the whole Question again, and ask
+  specifically for what that claim or statement needed.
+- RELEVANT failed because the documentation is for the wrong product, framework or version: name the exact one
+  the Question asks about, and put its version next to its name as part of the library name, as in "Vue 2" or
+  "React Router v5". Say which version the pack covered, and that documentation for it is not wanted.
+- ACTIONABLE failed: ask for the specific API, configuration or steps the Question wants. For an Error
+  Signature, ask for the root cause of that error and the steps that fix it.
+
+Rules:
+- Together, your Requeries ask for everything the Question asks for, and nothing else. Do not widen or change
+  the subject.
+- Each Requery stands alone: it names the product, library or framework, and the version if the Question has
+  one.
+- If the Question contains an Error Signature, copy it exactly into every Requery about that error. Never add a
+  detail that is not in the Question.
+- Write at most 2 Requeries. Write one unless splitting the Question really helps.
+- Do not repeat the Question word for word.
+- Ask only about the subject. Do not tell the Specialist how to search, how many sources to use or what to
+  quote.
+- Suggest the Specialist for each Requery by where its documentation lives:
+  - MicrosoftLearnSpecialist: products documented on Microsoft Learn, such as Azure (including AKS), .NET and C#,
+    Microsoft 365 and Graph, Windows, Power Platform, SQL Server, Entra, and GitHub Actions used with them.
+  - Context7Specialist: every other library and framework, including TypeScript, VS Code extension APIs, plain
+    GitHub Actions workflow syntax, general GitHub and plain Kubernetes.
+
+Return only this JSON object, with no text before or after it:
+{
+    "requeries": [
+        {"question": "<a standalone Requery>", "specialist": "<MicrosoftLearnSpecialist or Context7Specialist>"}
+    ]
+}
+""",
+            "max_steps": 10,
+            "max_execution_seconds": 60
         },
         {
             # Deterministic: no LLM. It gets the log after the Coordinator's middleware has redacted it, and it does

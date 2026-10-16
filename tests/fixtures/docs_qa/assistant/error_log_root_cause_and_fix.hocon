@@ -1,13 +1,17 @@
 # A pasted Error Log gets a reply that names a root cause and a fix (issue 05, spec seam 1). The Coordinator turns the
 # log into an Error Signature with log_signature_extractor, and the signature's library and version (Spring Boot
-# 3.2.5, from the jar) route it to the Context7 Specialist. Unverified: the Verifier loop arrives in issue 06.
+# 3.2.5, from the jar) route it to the Context7 Specialist. The reply may be verified or an Unverified Answer: both
+# keep the Root cause and Fix lines. Issue 08 asserts a verified error-log reply.
 # Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
 {
     "agent": "docs_qa/assistant",
     "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
     # The three samples run in parallel; two must pass.
     "success_ratio": "2/3",
-    "timeout_in_seconds": 360,
+    "timeout_in_seconds": 540,
     "interactions": [
         {
             "text": """My Spring Boot app won't start. Here is the log:

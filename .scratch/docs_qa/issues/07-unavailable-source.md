@@ -26,3 +26,11 @@ never costs a retry, and work already done isn't thrown away.
   - whether MCP connection failures are retried by the Specialist's `max_attempts` before UNAVAILABLE is reported.
 - [ ] The `rate_limit` error kind is not exercised in v1. The dead port simulates a connection failure, not a 429.
 - [ ] `ns validate` passes.
+
+**Notes from 06:**
+
+- The Coordinator's step 4b still stops at any non-OK pack on any Attempt, and step 4a treats a Specialist that
+  returns no pack (an error or its own 90 s timeout) as UNAVAILABLE. So an outage on Attempt 2 or 3 discards the
+  earlier Attempts. This ticket's "Source fails on Attempt 2 or 3" case replaces that. It was seen in the
+  `unverified_ungroundable_question` fixture (a Specialist timeout in Attempt 3).
+

@@ -1,0 +1,26 @@
+# A Question the documentation covers well ends in a verified reply (issue 06): the answer, its numbered sources,
+# and a footer counting the Excerpts it was checked against.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 540,
+    "interactions": [
+        {
+            "text": "How do I enable a system-assigned managed identity on an Azure App Service app with the Azure CLI?",
+            "response": {
+                "text": {
+                    # No gist: the stock gist judge needs OpenAI. The Coordinator's fixed verified-reply footer,
+                    # "Verified against N documentation Excerpts.", is checked with keywords.
+                    "keywords": ["az webapp identity assign", "[1]", "Sources", "Verified against", "documentation Excerpts"],
+                    "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

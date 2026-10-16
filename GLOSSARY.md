@@ -99,5 +99,5 @@ the user and is not a Verdict, so it never triggers a Requery.
 _Avoid_: Failed answer, invalid source
 
 **Unverified Answer**:
-The best Evidence Pack, returned with the last Verdict's reason when every Attempt has failed.
+The best Evidence Pack, returned with its own Verdict's reason when every Attempt has failed.
 _Avoid_: Fallback, partial answer

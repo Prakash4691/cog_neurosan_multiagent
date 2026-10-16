@@ -1,0 +1,29 @@
+# A Requery recovers a failed first answer to a version-sensitive Question (issue 06). The ticket asks for a
+# wrong-version first answer, which could not be forced (see below). Express 5 forwards a rejected
+# promise from an async route handler to the error-handling middleware by itself; Express 4 needs next(err) or a
+# wrapper. So an answer from the Express 5 docs fails the Relevant Check, and the reply must end verified.
+# Whether the first Attempt failed shows only in the agent trace, so this fixture asserts the end state. In the
+# traced runs (2026-10-16) the Context7 Specialist found the 4.21 docs itself, and the first Attempt failed Grounded
+# instead; no wrong-version first answer was seen.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 540,
+    "interactions": [
+        {
+            "text": "In Express 4.21, how do I make an error thrown inside an async route handler reach my error-handling middleware?",
+            "response": {
+                "text": {
+                    "keywords": ["next(", "[1]", "Sources", "(Context7)", "Verified against"],
+                    "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

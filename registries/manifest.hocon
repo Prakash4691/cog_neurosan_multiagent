@@ -13,7 +13,8 @@
 
     # Grounded documentation and error-log assistant. Spec: docs/spec/docs_qa.md.
     "docs_qa/assistant.hocon": true,
-    # The Verifier for docs_qa/assistant (wired in by issue 06), with its own golden-set fixtures (ADR 0003).
+    # The Verifier for docs_qa/assistant, which calls it as /docs_qa/verifier. It has its own golden-set fixtures
+    # (ADR 0003).
     "docs_qa/verifier.hocon": {
         "serve": true,
         "public": false

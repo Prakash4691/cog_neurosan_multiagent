@@ -295,7 +295,8 @@ verdict:        VALID | INVALID
 - **Both servers are registered keyless,** each with a tool allow list:
   - Microsoft Learn: three tools — docs search, code-sample search and docs fetch.
   - Context7: two tools — resolve library ID and query docs.
-  - Context7 runs at its anonymous rate limit.
+  - Context7 runs at its anonymous rate limit by default. An optional `CONTEXT7_API_KEY` environment variable
+    adds a key for higher limits. The anonymous monthly quota ran out during the first loop runs.
 - **Overridable Context7 URL.** The Context7 Specialist reads its server URL from a network-level HOCON value that
   defaults to the public Context7 endpoint. An optional `CONTEXT7_MCP_URL` environment variable overrides it, using
   HOCON's `${?VAR}` syntax. This override exists only for the manual Unavailable Source check (see Testing). Checked
@@ -306,23 +307,30 @@ verdict:        VALID | INVALID
 
 | Agent       | `max_steps` | `max_execution_seconds` | `max_attempts` |
 | ----------- | ----------- | ----------------------- | -------------- |
-| Coordinator | 60          | 300                     | 1              |
+| Coordinator | 240         | 480                     | 1              |
 | Specialists | 20          | 90                      | default (3)    |
-| Verifier    | 10          | 60                      | default (3)    |
+| Verifier    | 10          | 120                     | default (3)    |
 | Requerier   | 10          | 60                      | default (3)    |
 
 - The Coordinator uses `max_attempts = 1` because a retryable LLM error would otherwise re-run the whole loop from
   the start.
-- The assistant network sets `request_timeout_seconds = 360` as a top-level key. The server enforces it on HTTP
+- The Coordinator's `max_steps` is LangGraph's recursion limit, not a count of LLM calls. Each of its 7 redaction
+  middleware entries adds a `before_model` and an `after_model` step to every LLM call, so one tool round costs
+  about 16 steps. The first runs hit the original limit of 60 during Attempt 2. 240 covers the worst case, about
+  210 steps: an Error Log, Cross-domain Specialists called one at a time, and 3 Attempts.
+- The assistant network sets `request_timeout_seconds = 540` as a top-level key. The server enforces it on HTTP
   chat requests only (the nsflow UI and the HTTP API). A direct in-process `ns chat` session doesn't enforce it, and
-  there the Coordinator's 300-second `max_execution_seconds` is the guard.
+  there the Coordinator's 480-second `max_execution_seconds` is the guard.
+- The time limits were raised after the first loop runs (originally Coordinator 300, request 360, Verifier 60). A
+  3-Attempt run takes about 370 seconds: the Coordinator writes each Evidence Pack out again for the Verifier and
+  the Requerier, and the Verifier timed out at 60 seconds on a merged pack of three Requery answers.
 
 ### User-facing reply shapes
 
 | Reply type            | What it contains                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Verified answer       | The answer, numbered source links each labelled with its source (Microsoft Learn or Context7), and a footer saying it was verified against N documentation Excerpts. Excerpts themselves are not shown. |
-| Unverified Answer     | The same as a verified answer, plus a warning line at the top with the Verifier's reason.                                                   |
+| Unverified Answer     | The same as a verified answer, without the footer, plus a warning line at the top with that Attempt's Verdict reason.                       |
 | Out-of-scope Question | One polite sentence saying what the assistant covers.                                                                                       |
 | Unavailable Source    | Which source is unavailable, and a suggestion to retry later. Plus any verified partial answer (see Unavailable Source above).              |
 
@@ -340,7 +348,10 @@ verdict:        VALID | INVALID
 - LLM-backed tests:
   - assert with `keywords`, `not_keywords` or `gist`;
   - set a `success_ratio` so a single nondeterministic miss doesn't fail the test;
-  - set `timeout_in_seconds = 360`.
+  - set `use_direct = true` for the assistant, so the test driver calls `/docs_qa/verifier` in-process. Without
+    it, the driver looks for the Verifier over HTTP on a running server, and the Coordinator runs with no Verifier;
+  - set `timeout_in_seconds = 540` for the assistant (the Coordinator's 480 seconds plus headroom), and 360 for the
+    Verifier.
 - Deterministic code gets exact assertions.
 
 **Seams:**
@@ -415,8 +426,8 @@ These are decided for v1, so the build should not re-open them:
 
 - **No organization-specific domain suffixes in the redaction regexes.** The generic internal-host list stands. The
   maintainer may add private suffixes later.
-- **No API keys for either MCP server.** Both run keyless, and Context7 at its anonymous rate limit. Adding a key
-  later is a one-line change to the MCP server config.
+- **No required API keys for either MCP server.** Both run keyless by default, and Context7 at its anonymous rate
+  limit. A Context7 key is optional, read from `CONTEXT7_API_KEY`.
 - **No re-fetching of URLs by the Verifier.** The Excerpts are the grounding evidence.
 - **No automatic retry when a source is unavailable.**
 - **No answers to Out-of-scope Questions.** That includes answers from model knowledge, even when labelled.

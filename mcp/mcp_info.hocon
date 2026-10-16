@@ -99,10 +99,15 @@
     },
 
     # Context7 MCP — current, version-specific documentation for libraries and frameworks. Used by
-    # docs_qa/assistant. Keyless at the anonymous rate limit. To add a key later, set http_headers here.
+    # docs_qa/assistant. Keyless by default, at the anonymous rate limit and monthly quota.
+    # Optional: set CONTEXT7_API_KEY (for example in .env) for a free key's higher limits. "${?...}" leaves the
+    # value out when the variable is unset, which sends "Bearer " alone, and Context7 treats that as anonymous.
     # docs_qa/assistant references this exact URL; keep the two in step or this allow list stops applying.
     # Docs: https://github.com/upstash/context7
     "https://mcp.context7.com/mcp": {
+        "http_headers": {
+            "Authorization": "Bearer "${?CONTEXT7_API_KEY}
+        },
         "tools": ["resolve-library-id", "query-docs"]
     },
 

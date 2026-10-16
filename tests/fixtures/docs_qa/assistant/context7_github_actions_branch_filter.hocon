@@ -3,9 +3,12 @@
 {
     "agent": "docs_qa/assistant",
     "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
     # The three samples run in parallel; two must pass.
     "success_ratio": "2/3",
-    "timeout_in_seconds": 360,
+    "timeout_in_seconds": 540,
     "interactions": [
         {
             "text": "In a GitHub Actions workflow, how do I run the workflow only on pushes to the main branch?",

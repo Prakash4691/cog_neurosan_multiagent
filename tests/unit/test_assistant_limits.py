@@ -23,7 +23,7 @@ def limit(network: dict, name: str, key: str):
         (ASSISTANT, "Coordinator", 240, 480),
         (ASSISTANT, "MicrosoftLearnSpecialist", 20, 90),
         (ASSISTANT, "Context7Specialist", 20, 90),
-        (ASSISTANT, "Requerier", 10, 60),
+        (ASSISTANT, "Requerier", 10, 120),
         (VERIFIER, "Verifier", 10, 120),
     ],
     ids=lambda value: value if isinstance(value, str) else None,

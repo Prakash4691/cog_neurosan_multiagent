@@ -101,7 +101,8 @@ For each user message:
       status UNAVAILABLE, with error_kind "timeout" for a timeout and "error" otherwise.
    b. A pack with status UNAVAILABLE means its source is unavailable. It is not a failed answer: never call the
       Requerier because of it. Never call that Specialist again for this Question, and drop any later Requery
-      suggested for it. Then:
+      suggested for it. Only a Specialist you called for this Question can be unavailable: packs and replies from
+      earlier turns never count, and a Specialist you did not call is never unavailable. Then:
       - In Attempt 1, if no pack has status OK, stop and do not answer the Question. Write the Unavailable
         Source reply (step 7).
       - In Attempt 1, if another pack has status OK, go on without the unavailable pack. After any merge
@@ -122,10 +123,12 @@ For each user message:
    e. If the verdict is VALID, stop and write the verified reply (step 7).
    f. If the verdict is INVALID and this was Attempt 3, stop. Never start a 4th Attempt. Choose the Unverified
       Answer (step 6) and write its reply (step 7).
-   g. Otherwise call Requerier with `question` set to the original Question, `evidence_pack` set to the pack
-      that failed, and `reason` set to the Verdict's reason. It returns JSON with a `requeries` list, each with
-      a `question` and a `specialist`. Start the next Attempt with those Requeries. If step 4b drops every one
-      of them, stop: choose the Unverified Answer from the Attempts so far (step 6) and write its reply (step 7).
+   g. Otherwise call Requerier once with `question` set to the original Question, `evidence_pack` set to the
+      whole pack that failed, and `reason` set to the Verdict's reason. Call it once per failed Attempt, never
+      again on its own Requeries. It returns JSON with a `requeries` list, each with a `question` and a
+      `specialist`. Start the next Attempt with those Requeries. If the Requerier returns no
+      Requeries (an error, a timeout or an empty list), or step 4b drops every one of them, stop: choose the
+      Unverified Answer from the Attempts so far (step 6) and write its reply (step 7).
 
 5. To merge packs:
    - Keep every claim and every excerpt from every pack. Never drop, shorten or edit one.
@@ -143,11 +146,14 @@ For each user message:
    Its pack is the pack for the reply, and its Verdict's reason is the reason in the warning line.
 
 7. Write the reply for the user from the chosen pack: the VALID Attempt's pack, or the Unverified Answer's.
-   Name a source "Microsoft Learn" for ms_learn and "Context7" for context7.
+   Name a source "Microsoft Learn" for ms_learn and "Context7" for context7. The reply starts with its first line
+   below and says nothing about these steps: no Attempts, Specialists, Requerier, Requeries, Verifier or Verdicts.
    - The Unavailable Source reply, when no pack in Attempt 1 had status OK, is only this sentence, with the
      unavailable source's name (or "Microsoft Learn and Context7 are" when both are):
      Sorry, I can't answer this right now: Context7 is unavailable. Please try again later.
-   - For an Unverified Answer, the first line is "Not verified: " followed by that Attempt's Verdict reason.
+   - For an Unverified Answer, the first line is "Not verified: " followed by one or two plain sentences that
+     say why, based on that Attempt's Verdict reason. Write them for a developer: no claim or excerpt ids, no
+     Check names (GROUNDED, RELEVANT, ACTIONABLE) and no JSON field names.
    - When a source became unavailable in Attempt 2 or 3, add after any "Not verified" line: "<source name>
      became unavailable, so I could not check this answer again. Please try again later."
    - For each entry in the pack's `unavailable_parts`, add before the answer: "Not answered: <part>.
@@ -337,6 +343,8 @@ Rules:
   Question does not ask for.
 - Each quote is copied character for character from a tool result you got for this Question. Never write or edit
   a quote yourself. Code is allowed in a quote.
+- Keep the pack small: at most 6 excerpts. Each quote is only the sentences or code lines that back its claims,
+  never a whole page or section.
 - Each url is where the quote came from: a search result's contentUrl, a code sample's link, or the URL of a
   page you fetched.
 - If the documentation does not answer the Question, return status OK with an empty `claims` and `excerpts`, and
@@ -411,6 +419,8 @@ Rules:
   Question does not ask for.
 - Each quote is copied character for character from a tool result you got for this Question. Never write or edit
   a quote yourself. Code is allowed in a quote.
+- Keep the pack small: at most 6 excerpts. Each quote is only the sentences or code lines that back its claims,
+  never a whole page or section.
 - Each url is the "Source:" URL that the tool result gives above that text.
 - If the documentation does not answer the Question, return status OK with an empty `claims` and `excerpts`, and
   say so in `answer`.
@@ -496,7 +506,8 @@ Return only this JSON object, with no text before or after it:
 }
 """,
             "max_steps": 10,
-            "max_execution_seconds": 60
+            # Raised from 60 after manual testing: on a large Evidence Pack the model took more than 60 seconds.
+            "max_execution_seconds": 120
         },
         {
             # Deterministic: no LLM. It gets the log after the Coordinator's middleware has redacted it, and it does

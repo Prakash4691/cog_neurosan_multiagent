@@ -163,6 +163,7 @@ them, and only a short Error Signature goes to the documentation servers.
 - **Requerier:**
   - It is internal to the assistant network, with no network of its own.
   - It receives the original Question, the failed Evidence Pack and the Verdict's reason.
+  - It is called once per failed Attempt, never on its own Requeries.
   - It returns one or more Requeries, each with a suggested Specialist.
   - It never answers.
 
@@ -194,7 +195,9 @@ them, and only a short Error Signature goes to the documentation servers.
   - a VALID Verdict, which returns the verified answer;
   - the end of the 3rd Attempt, which returns the Unverified Answer;
   - an Out-of-scope Question, which gets an immediate decline;
-  - an Unavailable Source, under the rules below.
+  - an Unavailable Source, under the rules below;
+  - a Requerier that returns no Requeries (an error, a timeout or an empty list), which returns the Unverified
+    Answer from the attempts so far.
 - **The Verifier always judges against the original Question** (or the standalone follow-up), never against a
   Requery. Splitting a question can't change what success means.
 - **Choosing the Unverified Answer.** Among the failed attempts, pick the one with the fewest failed Checks. A failed
@@ -211,6 +214,8 @@ them, and only a short Error Signature goes to the documentation servers.
   with `error_kind: error`.
 - Once a source is unavailable, the Coordinator doesn't call its Specialist again for that Question, and drops
   any Requery suggested for it. The Requerier never asks for a part listed in `unavailable_parts`.
+- Only a Specialist called for the current Question can be unavailable. Packs and replies from earlier turns never
+  count.
 - Tools that work but return nothing useful are **not** UNAVAILABLE. The result is status OK with no Excerpts, which
   fails the Grounded Check and leads to a Requery.
 - What happens depends on when and where the source fails:
@@ -234,7 +239,8 @@ status:            OK | UNAVAILABLE  (+ error_kind: rate_limit | timeout | error
 version_covered:   e.g. "React 19.1" | "not version-specific"
 answer:            text
 claims:            [{ id, text, excerpt_ids: [...] }]
-excerpts:          [{ id, url, quote }]           (verbatim, retrieved in this Attempt only)
+excerpts:          [{ id, url, quote }]           (verbatim, retrieved in this Attempt only; at most 6 per
+                                                   Specialist pack, each quote only the lines that back a claim)
 unavailable_parts: [{ part, source, error_kind }] (Cross-domain Question with one source down only)
 ```
 
@@ -315,7 +321,7 @@ verdict:        VALID | INVALID
 | Coordinator | 240         | 480                     | 1              |
 | Specialists | 20          | 90                      | default (3)    |
 | Verifier    | 10          | 120                     | default (3)    |
-| Requerier   | 10          | 60                      | default (3)    |
+| Requerier   | 10          | 120                     | default (3)    |
 
 - The Coordinator uses `max_attempts = 1` because a retryable LLM error would otherwise re-run the whole loop from
   the start.
@@ -329,13 +335,16 @@ verdict:        VALID | INVALID
 - The time limits were raised after the first loop runs (originally Coordinator 300, request 360, Verifier 60). A
   3-Attempt run takes about 370 seconds: the Coordinator writes each Evidence Pack out again for the Verifier and
   the Requerier, and the Verifier timed out at 60 seconds on a merged pack of three Requery answers.
+- The Requerier's limit was raised from 60 to 120 seconds after manual testing, where it timed out in 2 of 3 calls
+  on large Evidence Packs (one call that finished took 17 seconds). The Coordinator's 480 seconds stays: a run where
+  both Requerier calls are slow can still reach it.
 
 ### User-facing reply shapes
 
 | Reply type            | What it contains                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Verified answer       | The answer, numbered source links each labelled with its source (Microsoft Learn or Context7), and a footer saying it was verified against N documentation Excerpts. Excerpts themselves are not shown. |
-| Unverified Answer     | The same as a verified answer, without the footer, plus a warning line at the top with that Attempt's Verdict reason.                       |
+| Unverified Answer     | The same as a verified answer, without the footer, plus a warning line at the top: "Not verified: " and one or two plain sentences, based on that Attempt's Verdict reason, with no claim or excerpt ids, Check names or JSON field names. |
 | Out-of-scope Question | One polite sentence saying what the assistant covers.                                                                                       |
 | Unavailable Source    | Which source is unavailable, and a suggestion to retry later. Plus any verified partial answer (see Unavailable Source above).              |
 

@@ -26,9 +26,11 @@ GO_VERSION = re.compile(r"\bgo(?P<version>1\.\d+(?:\.\d+)?)\b")
 GO_INTERNAL_FRAMES = ("runtime.", "panic", "created by ")
 
 # .NET, Java and Node.js: "Type: message", where .NET may add a "(0x80131904)" HResult and Node.js an
-# "[ERR_X]" code. The prefixes mark an unhandled .NET exception, an inner .NET exception and a Java cause.
+# "[ERR_X]" code. The prefixes mark an unhandled .NET exception, an inner .NET exception (Dataverse writes
+# "----> InnerException :") and a Java cause.
 EXCEPTION_LINE = re.compile(
-    r"^\s*(?:Unhandled exception\.\s+|Exception in thread \"[^\"]*\"\s+|Caused by:\s+|--->\s+)?"
+    r"^\s*(?:Unhandled exception\.\s+|Exception in thread \"[^\"]*\"\s+|Caused by:\s+"
+    r"|-{3,4}>\s+(?:InnerException\s*:\s*)?)?"
     r"(?P<type>(?:[A-Za-z_$][\w$]*\.)*(?:[A-Za-z_$][\w$]*)?(?:Exception|Error))"
     r"(?: [\[(](?P<code>0x[0-9A-Fa-f]+|[A-Z][A-Z_]+)[\])])?"
     r"(?::\s*(?P<message>.*))?$"
@@ -45,6 +47,13 @@ INTERNAL_FRAME_MARKERS = (
     "node:internal/",
 )
 NODE_CODE = re.compile(r"^\s*code: '(?P<code>[A-Z][A-Z_]+)'", re.MULTILINE)
+
+# A JSON error response, such as the Dataverse Web API's, puts the exception chain in one "message" string: each
+# inner exception follows a "--->" in the middle of the line, and the stack trace's newlines are escaped. Only an
+# escape before an "at" frame counts, so a Windows path such as C:\app\node_modules stays whole.
+MID_LINE_INNER_EXCEPTION = re.compile(r"(?<=\S)[ \t]+(?=-{3,4}>[ \t])")
+ESCAPED_FRAME_BREAK = re.compile(r"\\r?\\n(?=\s+at\s)")
+JSON_CODE = re.compile(r'"code"\s*:\s*"(?P<code>[^"]+)"')
 NODE_MODULE = re.compile(r"node_modules/(?P<library>(?:@[\w.-]+/)?[\w.-]+)/")
 NODE_VERSION = re.compile(r"^Node\.js v(?P<version>\d+(?:\.\d+)*)", re.MULTILINE)
 
@@ -78,6 +87,7 @@ class LogSignatureExtractor(CodedTool):
 
 
 def extract_error_signature(error_log: str) -> dict[str, Any]:
+    error_log = ESCAPED_FRAME_BREAK.sub("\n", MID_LINE_INNER_EXCEPTION.sub("\n", error_log))
     lines = error_log.splitlines()
     # Exceptions come before npm errors: when `npm start` runs a Node.js app that throws, npm's own lines only name
     # the user's project, and the Node.js error is the one to look up.
@@ -183,7 +193,7 @@ def _exception_signature(error_log: str, lines: list[str]) -> dict[str, Any] | N
     library, version = _exception_library(exception["type"], lines[index], frames, error_log)
     return _signature(
         error_type=exception["type"],
-        error_code=exception["code"] or _group(NODE_CODE, error_log, "code"),
+        error_code=exception["code"] or _group(NODE_CODE, error_log, "code") or _group(JSON_CODE, error_log, "code"),
         message=exception["message"] or "",
         library=library,
         version=version,

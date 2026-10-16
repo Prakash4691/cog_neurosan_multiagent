@@ -43,6 +43,27 @@ Error Number:515,State:2,Class:16
     }
 
 
+def test_json_error_response_with_escaped_stack_trace_reports_the_innermost_exception_and_the_code():
+    # A Dataverse Web API error as pasted in manual testing (issue 10): the exception chain and an escaped stack
+    # trace sit in one JSON "message" string, and the HResult is in the "code" field.
+    signature = extract(r""""code": "0x80048d19",
+"message": "Error identified in Payload provided by the user for Entity :'', For more information on this error please follow this help link https://go.microsoft.com/fwlink/?linkid=2195293 ----> InnerException : Microsoft.OData.ODataException: Cannot convert the literal 'ead' to the expected type 'Edm.Int32'. ---> System.FormatException: Input string was not in a correct format.\r\n   at System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, NumberFormatInfo info, Boolean parseDecimal)\r\n   at System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)\r\n   at System.String.System.IConvertible.ToInt32(IFormatProvider provider)\r\n   at System.Convert.ChangeType(Object value, Type conversionType, IFormatProvider provider)\r\n   at Microsoft.
+""")
+    assert signature == {
+        "error_type": "System.FormatException",
+        "error_code": "0x80048d19",
+        "message": "Input string was not in a correct format.",
+        "library": "System",
+        "version": None,
+        "frames": [
+            "System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, "
+            "NumberFormatInfo info, Boolean parseDecimal)",
+            "System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)",
+            "System.String.System.IConvertible.ToInt32(IFormatProvider provider)",
+        ],
+    }
+
+
 def test_dotnet_assembly_load_error_takes_library_and_version_from_the_assembly_name():
     signature = extract("""Unhandled exception. System.IO.FileNotFoundException: Could not load file or assembly 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed'. The system cannot find the file specified.
 File name: 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed'

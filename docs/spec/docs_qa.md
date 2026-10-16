@@ -206,6 +206,11 @@ them, and only a short Error Signature goes to the documentation servers.
 
 - A Specialist whose MCP calls fail (rate limit, timeout, error) returns status UNAVAILABLE with the kind of error.
   This is not a Verdict and never triggers a Requery. There is no automatic retry in v1.
+- An MCP server that can't be reached fails before any call: neuro-san drops its tools when it loads them, and the
+  Specialist runs with no tools. The Specialist's instructions treat having no documentation tools as UNAVAILABLE
+  with `error_kind: error`.
+- Once a source is unavailable, the Coordinator doesn't call its Specialist again for that Question, and drops
+  any Requery suggested for it. The Requerier never asks for a part listed in `unavailable_parts`.
 - Tools that work but return nothing useful are **not** UNAVAILABLE. The result is status OK with no Excerpts, which
   fails the Grounded Check and leads to a Requery.
 - What happens depends on when and where the source fails:
@@ -230,7 +235,7 @@ version_covered:   e.g. "React 19.1" | "not version-specific"
 answer:            text
 claims:            [{ id, text, excerpt_ids: [...] }]
 excerpts:          [{ id, url, quote }]           (verbatim, retrieved in this Attempt only)
-unavailable_parts: [{ part, source, error_kind }] (merged cross-domain pack only)
+unavailable_parts: [{ part, source, error_kind }] (Cross-domain Question with one source down only)
 ```
 
 The Verdict, which the Verifier returns, with fields in this order:

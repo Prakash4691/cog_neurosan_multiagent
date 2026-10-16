@@ -35,7 +35,7 @@ failed Checks, the reason, then VALID or INVALID. It never answers or rewrites t
                         },
                         "evidence_pack": {
                             "type": "object",
-                            "description": "The Evidence Pack to judge. A merged Cross-domain pack puts `source` on each claim and excerpt, and lists the parts no source could answer in `unavailable_parts`.",
+                            "description": "The Evidence Pack to judge. A merged Cross-domain pack puts `source` on each claim and excerpt. A pack for a Cross-domain Question with one source down lists the parts that source could not answer in `unavailable_parts`.",
                             "properties": {
                                 "source": {"type": "string", "description": "ms_learn or context7. Absent from a merged pack."},
                                 "status": {"type": "string", "description": "OK or UNAVAILABLE."},

@@ -15,6 +15,10 @@
     # list stops applying to the Specialist.
     "ms_learn_mcp_url": "https://learn.microsoft.com/api/mcp",
     "context7_mcp_url": "https://mcp.context7.com/mcp",
+    # Optional override, only for the manual Unavailable Source check (spec, Testing Decisions): point it at a dead
+    # port such as http://localhost:9/mcp. The override lives here, not in mcp/mcp_info.hocon, because HOCON can't
+    # substitute into that file's URL keys. While it is set, the Context7 tool allow list does not apply.
+    "context7_mcp_url": ${?CONTEXT7_MCP_URL},
 
     # Defaults for every agent, set to the spec's Coordinator limits. Every other agent must set its own.
     # max_steps is LangGraph's recursion limit, and every Coordinator middleware entry adds a before_model and an
@@ -92,11 +96,24 @@ For each user message:
       per Requery: all the Requeries from one Requerier output together make one Attempt, however many there
       are. Each Specialist returns an Evidence Pack as JSON with these fields: source, status, version_covered,
       answer, claims (each with excerpt_ids) and excerpts (each with id, url and verbatim quote). Call a
-      Specialist once per Question, part or Requery, never again with the same one. If it returns no Evidence
-      Pack (an error or a timeout), its pack has status UNAVAILABLE.
-   b. If any pack's status is not OK, stop and do not answer the Question. Say which documentation source is
-      unavailable (Microsoft Learn or Context7), and suggest the user try again later.
-   c. If the Attempt got more than one pack, merge them into one Evidence Pack (step 5).
+      Specialist once per Question, part or Requery, never again with the same one: there is no retry. If it
+      returns no Evidence Pack (an error, a timeout, or a reply that is not an Evidence Pack JSON), its pack has
+      status UNAVAILABLE, with error_kind "timeout" for a timeout and "error" otherwise.
+   b. A pack with status UNAVAILABLE means its source is unavailable. It is not a failed answer: never call the
+      Requerier because of it. Never call that Specialist again for this Question, and drop any later Requery
+      suggested for it. Then:
+      - In Attempt 1, if no pack has status OK, stop and do not answer the Question. Write the Unavailable
+        Source reply (step 7).
+      - In Attempt 1, if another pack has status OK, go on without the unavailable pack. After any merge
+        (step c), add an `unavailable_parts` list to the Attempt's pack, with one entry per unavailable pack.
+        Each entry has three fields:
+        - `part`: the Question or part you sent that Specialist;
+        - `source`: "ms_learn" for MicrosoftLearnSpecialist, "context7" for Context7Specialist;
+        - `error_kind`: the pack's error_kind.
+        Put the same list, unchanged, in the pack of every later Attempt.
+      - In Attempt 2 or 3, stop. Use no pack from this Attempt. Choose the Unverified Answer from the earlier
+        Attempts (step 6) and write its reply with the "became unavailable" line (step 7).
+   c. If the Attempt got more than one pack with status OK, merge them into one Evidence Pack (step 5).
    d. Call __docs_qa__verifier with `question` set to the original Question, never a Requery, and
       `evidence_pack` set to the Attempt's pack (or merged pack), unchanged. It returns a Verdict as JSON:
       failed_checks, reason and verdict. Call it once per Attempt, never again for the same pack. If it returns
@@ -107,7 +124,8 @@ For each user message:
       Answer (step 6) and write its reply (step 7).
    g. Otherwise call Requerier with `question` set to the original Question, `evidence_pack` set to the pack
       that failed, and `reason` set to the Verdict's reason. It returns JSON with a `requeries` list, each with
-      a `question` and a `specialist`. Start the next Attempt with those Requeries.
+      a `question` and a `specialist`. Start the next Attempt with those Requeries. If step 4b drops every one
+      of them, stop: choose the Unverified Answer from the Attempts so far (step 6) and write its reply (step 7).
 
 5. To merge packs:
    - Keep every claim and every excerpt from every pack. Never drop, shorten or edit one.
@@ -117,14 +135,23 @@ For each user message:
    - `answer` holds every pack's answer. `version_covered` names what each pack covers, such as
      "Azure Functions: not version-specific; React 19.1".
 
-6. To choose the Unverified Answer from the 3 failed Attempts, compare their Verdicts in this order:
+6. To choose the Unverified Answer from the failed Attempts (3, or fewer when a source became unavailable),
+   compare their Verdicts in this order:
    - An Attempt that passed GROUNDED beats one whose failed_checks include GROUNDED.
    - Then the Attempt with fewer failed Checks wins.
    - If they still tie, the later Attempt wins.
    Its pack is the pack for the reply, and its Verdict's reason is the reason in the warning line.
 
 7. Write the reply for the user from the chosen pack: the VALID Attempt's pack, or the Unverified Answer's.
+   Name a source "Microsoft Learn" for ms_learn and "Context7" for context7.
+   - The Unavailable Source reply, when no pack in Attempt 1 had status OK, is only this sentence, with the
+     unavailable source's name (or "Microsoft Learn and Context7 are" when both are):
+     Sorry, I can't answer this right now: Context7 is unavailable. Please try again later.
    - For an Unverified Answer, the first line is "Not verified: " followed by that Attempt's Verdict reason.
+   - When a source became unavailable in Attempt 2 or 3, add after any "Not verified" line: "<source name>
+     became unavailable, so I could not check this answer again. Please try again later."
+   - For each entry in the pack's `unavailable_parts`, add before the answer: "Not answered: <part>.
+     <source name> is unavailable. Please try again later."
    - The answer, taken from the pack's `answer` and `claims`. Add nothing that is not in them.
    - For an Error Log, the answer starts with a line beginning "Root cause:" that names the likely cause of the
      error in the Error Signature, then a line "Fix:" followed by numbered fix steps.
@@ -272,6 +299,9 @@ when you are sure: if the documentation you retrieve does not say it, it does no
 If the Question includes an Error Signature, look up its error type or code and its message for the library and
 version it names, and answer with the likely root cause of the error and the steps to fix it.
 
+First check your tools. If microsoft_docs_search is not a tool you can call, Microsoft Learn could not be reached:
+do not describe calling it, and return the UNAVAILABLE pack at once (see Rules).
+
 Call the tools in this order:
 1. Search: call microsoft_docs_search with a query made from the Question.
 2. Then, only as needed:
@@ -303,8 +333,9 @@ Rules:
   page you fetched.
 - If the documentation does not answer the Question, return status OK with an empty `claims` and `excerpts`, and
   say so in `answer`.
-- If a tool call fails (an error, a timeout or a rate limit), return status "UNAVAILABLE" with an added
-  "error_kind" of "rate_limit", "timeout" or "error", and empty `answer`, `claims` and `excerpts`.
+- If you have no documentation tools to call, or a tool call fails (an error, a timeout or a rate limit), return
+  status "UNAVAILABLE" with an added "error_kind" of "rate_limit", "timeout" or "error" ("error" when you have no
+  tools), and empty `answer`, `claims` and `excerpts`.
 """,
             "tools": [${ms_learn_mcp_url}],
             "max_steps": 20,
@@ -336,6 +367,9 @@ you are sure: if the documentation you retrieve does not say it, it does not go 
 If the Question includes an Error Signature, look up its error type or code and its message for the library and
 version it names, and answer with the likely root cause of the error and the steps to fix it.
 
+First check your tools. If resolve-library-id and query-docs are not tools you can call, Context7 could not be
+reached: do not describe calling them, and return the UNAVAILABLE pack at once (see Rules).
+
 Call the tools in this order:
 1. Resolve the library ID: call the resolve-library-id tool with the library or framework named in the Question.
    Prefer the official library with the highest benchmark score. If the Question names a version and that
@@ -364,8 +398,9 @@ Rules:
 - Each url is the "Source:" URL that the tool result gives above that text.
 - If the documentation does not answer the Question, return status OK with an empty `claims` and `excerpts`, and
   say so in `answer`.
-- If a tool call fails (an error, a timeout or a rate limit), return status "UNAVAILABLE" with an added
-  "error_kind" of "rate_limit", "timeout" or "error", and empty `answer`, `claims` and `excerpts`.
+- If you have no documentation tools to call, or a tool call fails (an error, a timeout or a rate limit), return
+  status "UNAVAILABLE" with an added "error_kind" of "rate_limit", "timeout" or "error" ("error" when you have no
+  tools), and empty `answer`, `claims` and `excerpts`.
 """,
             "tools": [${context7_mcp_url}],
             "max_steps": 20,
@@ -405,7 +440,8 @@ answer or a guess at one.
 
 The answers to your Requeries replace the failed pack completely: nothing from it carries over, and they are
 judged together against the whole Question. So your Requeries must together ask for everything the Question
-asks for, including the parts the failed pack got right, never only for the part that failed.
+asks for, including the parts the failed pack got right, never only for the part that failed. The one exception
+is the pack's `unavailable_parts`: their source is down, so never ask for those parts.
 
 Use the reason to decide how to change the Question:
 - GROUNDED failed because the pack has no excerpts, or too few: rephrase the Question in the terms the

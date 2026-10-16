@@ -1,0 +1,40 @@
+# A pasted Error Log with a known, documented fix ends in a verified reply that names the root cause and the fix
+# (issue 08). Microsoft Learn documents this exact Blazor Web App error and both ways to fix it ("Client-side
+# services that fail during prerendering"), so the loop has the evidence it needs to reach a VALID Verdict.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 540,
+    "interactions": [
+        {
+            "text": """My Blazor Web App throws this when I open the Weather page:
+
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.InvalidOperationException: Cannot provide a value for property 'Forecaster' on type 'WeatherApp.Client.Pages.Weather'. There is no registered service of type 'WeatherApp.Client.IWeatherForecaster'.
+         at Microsoft.AspNetCore.Components.ComponentFactory.<>c__DisplayClass9_0.<CreatePropertyInjector>g__Initialize|1(IServiceProvider serviceProvider, IComponent component)
+         at Microsoft.AspNetCore.Components.ComponentFactory.InstantiateComponent(IServiceProvider serviceProvider, Type componentType, IComponentRenderMode callerSpecifiedRenderMode, Nullable`1 parentComponentId)
+         at Microsoft.AspNetCore.Components.RenderTree.Renderer.InstantiateChildComponentOnFrame(RenderTreeFrame[] frames, Int32 frameIndex, Int32 parentComponentId)
+
+What is wrong and how do I fix it?""",
+            "response": {
+                "text": {
+                    # No gist: the stock gist judge needs OpenAI. The Error Log reply format (Root cause and Fix
+                    # lines) and the verified-answer footer are checked with keywords. "prerender" ties the reply
+                    # to this error's documented cause rather than to generic dependency injection advice.
+                    "keywords": [
+                        "Root cause:", "Fix:", "prerender", "[1]", "Sources", "(Microsoft Learn)",
+                        "Verified against", "documentation Excerpts"
+                    ],
+                    "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

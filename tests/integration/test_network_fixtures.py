@@ -19,6 +19,8 @@ FIXTURES = [
     "docs_qa/assistant/verified_answer_footer.hocon",
     "docs_qa/assistant/unverified_ungroundable_question.hocon",
     "docs_qa/assistant/requery_recovers_failed_first_answer.hocon",
+    "docs_qa/assistant/error_log_verified_root_cause_and_fix.hocon",
+    "docs_qa/assistant/error_log_version_from_signature.hocon",
     # The Verifier's golden set. Run it alone with: pytest -m integration -k docs_qa_verifier
     "docs_qa/verifier/invalid_grounded.hocon",
     "docs_qa/verifier/invalid_relevant_wrong_version.hocon",

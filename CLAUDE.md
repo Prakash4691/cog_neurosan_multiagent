@@ -72,3 +72,17 @@ the project root on `PYTHONPATH` that copy shadows this repo's `coded_tools/`: l
 `Could not find class`, and the designer networks run the wheel's copies instead of the local ones.
 
 Dependencies are managed with `uv` (`uv add <package>`, `uv sync`). Python 3.13.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are local markdown files under `.scratch/<feature>/issues/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels, recorded in each ticket's `**Status:**` line. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.

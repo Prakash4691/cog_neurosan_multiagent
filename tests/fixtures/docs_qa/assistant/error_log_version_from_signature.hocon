@@ -1,0 +1,45 @@
+# The Relevant Check uses the library and version from the Error Signature when the user states no version
+# (issue 08). The user never names a version, but the log's jars do: log_signature_extractor returns
+# spring-boot-autoconfigure 3.4.1. Context7 has Spring Boot docs for v3.4.1, so an answer from any other version
+# fails the Relevant Check, and the reply can only end verified with its version line naming 3.4.
+# The issue 05 fixture (error_log_root_cause_and_fix) uses Spring Boot 3.2.5, which Context7 has no docs for
+# (checked 2026-10-16: 2.7.18, 3.1.12, 3.3.11, 3.4.1, 3.5.x, 4.x), so it can't end verified.
+# Schema: https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/test_case_hocon_reference.md
+{
+    "agent": "docs_qa/assistant",
+    "connections": "direct",
+    # Calls the /docs_qa/verifier external agent in-process. Without it, the test driver looks for it over HTTP
+    # on a running server, and the Coordinator runs with no Verifier.
+    "use_direct": true,
+    # The three samples run in parallel; two must pass.
+    "success_ratio": "2/3",
+    "timeout_in_seconds": 540,
+    "interactions": [
+        {
+            "text": """My Spring Boot app won't start. Here is the log:
+
+2025-01-14T09:42:11.508Z ERROR 1 --- [orders] [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657) ~[spring-beans-6.2.1.jar:6.2.1]
+	at com.example.orders.OrdersApplication.main(OrdersApplication.java:10) ~[classes/:na]
+Caused by: org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$DataSourceBeanCreationException: Failed to determine a suitable driver class
+	at org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.determineDriverClassName(DataSourceProperties.java:184) ~[spring-boot-autoconfigure-3.4.1.jar:3.4.1]
+	at org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration.createDataSource(DataSourceConfiguration.java:60) ~[spring-boot-autoconfigure-3.4.1.jar:3.4.1]
+	... 22 common frames omitted
+
+What is wrong and how do I fix it?""",
+            "response": {
+                "text": {
+                    # "3.4" comes from the reply's version line: the user never wrote it, so only the Error
+                    # Signature can have put it there. "spring.datasource.url" is the documented fix.
+                    "keywords": [
+                        "Root cause:", "Fix:", "spring.datasource.url", "3.4", "[1]", "Sources", "(Context7)",
+                        "Verified against"
+                    ],
+                    "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
+                }
+            }
+        }
+    ]
+}

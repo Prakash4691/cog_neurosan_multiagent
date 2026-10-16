@@ -31,7 +31,7 @@ failed Checks, the reason, then VALID or INVALID. It never answers or rewrites t
                     "properties": {
                         "question": {
                             "type": "string",
-                            "description": "The user's original Question, the standalone form of a follow-up, or the Error Signature of an Error Log. Never a Requery."
+                            "description": "The user's original Question, or the standalone form of a follow-up, including the Error Signature when the Question is about an Error Log. Never a Requery."
                         },
                         "evidence_pack": {
                             "type": "object",
@@ -106,7 +106,8 @@ GROUNDED passes only if all of these are true:
   covers fails this Check, even if it is true.
 
 RELEVANT passes only if the answer is about the exact product, framework and version that the Question names.
-If the Question is an Error Signature, use the library and version in the signature.
+If the Question contains an Error Signature, the library and version in the signature are named by the Question,
+even when the user's own words name no version.
 - If a version is named, `version_covered` and the excerpts must be for that version. A more specific release
   of it matches (7.9.4 for 7.9), but any other version fails, major or minor, even if the API looks similar.
 - If no version is named, the pack must say which version it covers. RELEVANT fails if `version_covered` is
@@ -114,8 +115,8 @@ If the Question is an Error Signature, use the library and version in the signat
   version.
 
 ACTIONABLE:
-- If the Question is an Error Log Question (it is an Error Signature, or it gives an error type or code, an
-  error message or stack frames), the answer must name a root cause and give a fix (steps or code that make the
+- If the Question is an Error Log Question (it contains an Error Signature, or it gives an error type or code,
+  an error message or stack frames), the answer must name a root cause and give a fix (steps or code that make the
   error go away), both tied to that error. A root cause without a fix fails.
 - Otherwise, the answer must give the specific API, config or steps the Question asked for.
 

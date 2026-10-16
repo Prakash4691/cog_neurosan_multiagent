@@ -8,7 +8,9 @@ never costs a retry, and work already done isn't thrown away.
 **Blocked by:** 06
 
 **Status:** completed (2026-10-16). The Cross-domain manual run ended as an Unverified Answer, not a verified
-half, because of the Grounded Check tuning that 06 leaves open (see Notes).
+half, because of the Grounded Check tuning that was still open in 06 then (see Notes). 06's tuning has since fixed
+this: with both sources up, the same question is VALID on Attempt 1. The dead-port Cross-domain run was not
+repeated after the tuning.
 
 - [x] A Specialist whose MCP calls fail returns status UNAVAILABLE with the error kind. Tools that work but find
       nothing return status OK with no Excerpts.

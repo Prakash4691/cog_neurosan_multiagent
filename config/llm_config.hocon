@@ -3,7 +3,7 @@
         # Ollama Cloud model, served through the local Ollama daemon (signed in via `ollama signin`).
         # "class" is required because neuro-san's built-in model list doesn't include cloud tags.
         "class": "ollama",
-        "model_name": "glm-5.3:cloud",
+        "model_name": "kimi-k3:cloud",
         "base_url": "http://localhost:11434"
     }
 }

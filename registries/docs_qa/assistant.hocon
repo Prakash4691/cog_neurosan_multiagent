@@ -296,6 +296,12 @@ Rules:
   tools), and empty `answer`, `claims` and `excerpts`.
 """,
             "tools": [${ms_learn_mcp_url}],
+            # Pinned per agent so a change to the shared default in config/llm_config.hocon does not move it.
+            "llm_config": {
+                "class": "ollama",
+                "model_name": "glm-5.3:cloud",
+                "base_url": "http://localhost:11434"
+            },
             "max_steps": 20,
             # Raised from 90 for the extra searches (issue 16). attempt_loop's 360-second budget caps the whole loop.
             "max_execution_seconds": 120
@@ -378,6 +384,11 @@ Rules:
   tools), and empty `answer`, `claims` and `excerpts`.
 """,
             "tools": [${context7_mcp_url}],
+            "llm_config": {
+                "class": "ollama",
+                "model_name": "glm-5.3:cloud",
+                "base_url": "http://localhost:11434"
+            },
             "max_steps": 20,
             # Raised from 90 for the extra searches (issue 16). attempt_loop's 360-second budget caps the whole loop.
             "max_execution_seconds": 120
@@ -457,6 +468,12 @@ Return only this JSON object, with no text before or after it:
     ]
 }
 """,
+            # A faster model: the Requerier only rewrites or splits the Question.
+            "llm_config": {
+                "class": "ollama",
+                "model_name": "glm-5.3-flash:cloud",
+                "base_url": "http://localhost:11434"
+            },
             "max_steps": 10,
             # Raised from 60 after manual testing: on a large Evidence Pack the model took more than 60 seconds.
             "max_execution_seconds": 120

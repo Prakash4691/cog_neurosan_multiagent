@@ -514,7 +514,9 @@ These are decided for v1, so the build should not re-open them:
 
 ## Further Notes
 
-- **The LLM is a cloud model.** Every agent uses the shared `glm-5.3:cloud` model through Ollama Cloud. That's why
+- **The LLM is a cloud model.** Every agent uses an Ollama Cloud model: the Coordinator uses the shared default in
+  `config/llm_config.hocon` (`kimi-k3:cloud`), the Specialists `glm-5.3:cloud`, the Requerier `glm-5.3-flash:cloud`
+  and the Verifier `deepseek-v4-pro:cloud`, each set in its own agent `llm_config`. That's why
   redaction must happen before the Coordinator's first model call, and not in a tool (ADR 0002).
 - **The verify loop is slow.** The worst case is about 15–25 LLM calls (fewer since ADR 0004). Tune the step and time limits after the
   first golden-set runs.

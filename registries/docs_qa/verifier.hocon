@@ -18,6 +18,12 @@
     "tools": [
         {
             "name": "Verifier",
+            # A different model from the agents it judges, so it does not share their blind spots.
+            "llm_config": {
+                "class": "ollama",
+                "model_name": "deepseek-v4-pro:cloud",
+                "base_url": "http://localhost:11434"
+            },
             "function": {
                 "description": """
 Judges whether an Evidence Pack answers its Question: grounded in the pack's verbatim documentation Excerpts,

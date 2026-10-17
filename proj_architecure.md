@@ -7,13 +7,13 @@ documentation and error-log assistant.
 
 ## Layers
 
-| Layer | Where | What it does |
-|---|---|---|
-| Agent networks | `registries/*.hocon` | Each file is one network: its agents, their instructions, tools and limits. `registries/manifest.hocon` decides which networks are served and whether they are public. |
-| Coded tools | `coded_tools/<group>/<network>/` | Python `CodedTool` classes that a network calls. They are matched to a network by folder path. |
-| Middleware | `middleware/` | `AgentMiddleware` classes that run around an agent's LLM calls (redaction, validation, saving files). |
-| Shared config | `config/llm_config.hocon`, `mcp/mcp_info.hocon` | One LLM for all networks (`glm-5.3:cloud` through the local Ollama daemon) and the MCP server URLs with their tool allow lists. |
-| Runtime | `ns run` / `ns chat` | The neuro-san server and the nsflow UI from the PyPI wheel. `main.py` is an unused stub. |
+| Layer          | Where                                           | What it does                                                                                                                                                           |
+| -------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent networks | `registries/*.hocon`                            | Each file is one network: its agents, their instructions, tools and limits. `registries/manifest.hocon` decides which networks are served and whether they are public. |
+| Coded tools    | `coded_tools/<group>/<network>/`                | Python `CodedTool` classes that a network calls. They are matched to a network by folder path.                                                                         |
+| Middleware     | `middleware/`                                   | `AgentMiddleware` classes that run around an agent's LLM calls (redaction, validation, saving files).                                                                  |
+| Shared config  | `config/llm_config.hocon`, `mcp/mcp_info.hocon` | The default LLM (`kimi-k3:cloud` through the local Ollama daemon), which an agent's own `llm_config` overrides, and the MCP server URLs with their tool allow lists.        |
+| Runtime        | `ns run` / `ns chat`                            | The neuro-san server and the nsflow UI from the PyPI wheel. `main.py` is an unused stub.                                                                               |
 
 ## Served networks (`registries/manifest.hocon`)
 
@@ -87,12 +87,12 @@ exceptions, Go panics, compiler errors, npm errors and JSON error bodies, and ha
 
 ### Limits
 
-| Agent | `max_steps` | `max_execution_seconds` |
-|---|---|---|
-| docs_qa/assistant (network) | 240 | 480 |
-| attempt_loop (own budget) | — | 360 |
-| Specialists, Requerier | 20 / 10 | 120 |
-| docs_qa/verifier (network) | 10 | 120 |
+| Agent                       | `max_steps` | `max_execution_seconds` |
+| --------------------------- | ----------- | ----------------------- |
+| docs_qa/assistant (network) | 240         | 480                     |
+| attempt_loop (own budget)   | —           | 360                     |
+| Specialists, Requerier      | 20 / 10     | 120                     |
+| docs_qa/verifier (network)  | 10          | 120                     |
 
 The loop's 360 s budget leaves the Coordinator time for its final reply.
 

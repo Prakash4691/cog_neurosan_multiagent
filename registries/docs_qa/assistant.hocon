@@ -430,6 +430,12 @@ judged together against the whole Question. So your Requeries must together ask 
 asks for, including the parts the failed pack got right, never only for the part that failed. The one exception
 is the pack's `unavailable_parts`: their source is down, so never ask for those parts.
 
+First check whether a Requery can help. If the pack has no excerpts and its `answer` says the source has no
+documentation at all for the product, library or framework the Question is about (for example, the library
+lookup found no match for it), rephrasing will not find it in that source. Then:
+- If the other Specialist's source documents that product, write one Requery for that Specialist.
+- Otherwise return no Requeries: {"requeries": []}.
+
 Use the reason to decide how to change the Question:
 - GROUNDED failed because the pack has no excerpts, or too few: rephrase the Question in the terms the
   documentation is likely to use, or split it into smaller Questions that are easier to look up.

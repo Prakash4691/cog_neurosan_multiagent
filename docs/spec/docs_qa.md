@@ -181,6 +181,10 @@ them, and only a short Error Signature goes to the documentation servers.
   - It receives the original Question, the failed Evidence Pack and the Verdict's reason.
   - It is called once per failed Attempt, never on its own Requeries.
   - It returns one or more Requeries, each with a suggested Specialist.
+  - It returns no Requeries when the failed pack has no Excerpts because its source has no documentation at all
+    for the product, library or framework (for example, Context7's library lookup found no match). Rephrasing can't
+    find what the source doesn't have, and each extra Attempt costs a Requerier and a Specialist run. If the other
+    Specialist's source documents that product, it writes one Requery for that Specialist instead.
   - It keeps every product, library, client and version name the Question uses, even one the documentation does
     not mention, and never swaps in another product.
   - It never answers.

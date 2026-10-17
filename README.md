@@ -50,6 +50,27 @@ repo's `coded_tools/`, and local tools fail with `Could not find class`.
 
 `--one-shot` sends only the first line of the input. For a multi-line error log, use the interactive chat or the UI.
 
+## Observability
+
+Traces go to a local [Phoenix](https://arize.com/docs/phoenix) server through the `PhoenixPlugin` in
+`config/plugins.hocon`. Add this to `.env`:
+
+```bash
+PHOENIX_ENABLED=true
+PHOENIX_AUTOSTART=true          # ns run starts Phoenix itself
+PHOENIX_OTEL_REGISTER=false     # phoenix.otel.register() fails with the installed OTel exporter
+OTEL_SERVICE_NAME=cog_neurosan_multiagent
+```
+
+Then run `ns run`, send a request, and open <http://localhost:6006>. Traces are in the `default` project. Each
+request shows the agent calls, LLM calls (with prompts, replies and tokens), and MCP tool calls.
+
+- Only the `ns run` server loads plugins. `ns chat` runs the network in its own process by default, so it is not
+  traced. To trace a terminal chat, keep `ns run` running and add `--connection http --port 8080` to `ns chat`.
+- Phoenix keeps traces in `~/.phoenix/phoenix.db`. They persist across restarts.
+- On the first start, Phoenix creates its database. Do not stop it during that step, or the database is left half
+  migrated. If Phoenix then fails with `table projects already exists`, delete `~/.phoenix` and start again.
+
 ## Test
 
 ```bash

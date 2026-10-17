@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "arize-phoenix==14.6.0",
+    "arize-phoenix-otel==0.16.1",
     "langchain-ollama>=1.1.0",
     "neuro-san-studio>=0.4.2",
+    "openinference-instrumentation-langchain==0.1.64",
+    "openinference-instrumentation-mcp==2.0.1",
 ]
 
 [dependency-groups]
@@ -21,3 +25,7 @@ pythonpath = ["."]
 markers = [
     "integration: runs a network end to end against the live LLM and MCP servers",
 ]
+
+[tool.uv]
+# graphql-core 3.3 breaks the strawberry-graphql version that arize-phoenix 14.6.0 pins (Phoenix server fails to import).
+constraint-dependencies = ["graphql-core<3.3"]

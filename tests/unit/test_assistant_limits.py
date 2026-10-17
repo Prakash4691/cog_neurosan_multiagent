@@ -2,6 +2,7 @@
 LLM. Expected values come from docs/spec/docs_qa.md (Limits)."""
 
 import pytest
+from coded_tools.docs_qa.assistant.attempt_loop import LOOP_SECONDS
 from neuro_san.internals.graph.persistence.agent_network_restorer import AgentNetworkRestorer
 
 # Agents that don't set a limit themselves get the network's top-level value.
@@ -21,8 +22,8 @@ def limit(network: dict, name: str, key: str):
     "network, name, max_steps, max_execution_seconds",
     [
         (ASSISTANT, "Coordinator", 240, 480),
-        (ASSISTANT, "MicrosoftLearnSpecialist", 20, 90),
-        (ASSISTANT, "Context7Specialist", 20, 90),
+        (ASSISTANT, "MicrosoftLearnSpecialist", 20, 120),
+        (ASSISTANT, "Context7Specialist", 20, 120),
         (ASSISTANT, "Requerier", 10, 120),
         (VERIFIER, "Verifier", 10, 120),
     ],
@@ -50,5 +51,16 @@ def test_assistant_sets_the_http_request_timeout_at_the_top_level():
     assert ASSISTANT["request_timeout_seconds"] == 540
 
 
-def test_coordinator_calls_the_verifier_network_on_the_same_server():
-    assert "/docs_qa/verifier" in agent(ASSISTANT, "Coordinator")["tools"]
+def test_the_loop_budget_fits_inside_the_coordinator_and_always_fits_a_first_attempt():
+    # The Coordinator needs time left for its own LLM rounds, and Attempt 1 (a Specialist and the Verifier) must be
+    # able to finish, or the user could get no answer at all.
+    assert LOOP_SECONDS <= limit(ASSISTANT, "Coordinator", "max_execution_seconds") - 120
+    for specialist in ("MicrosoftLearnSpecialist", "Context7Specialist"):
+        first_attempt = limit(ASSISTANT, specialist, "max_execution_seconds") + limit(
+            VERIFIER, "Verifier", "max_execution_seconds"
+        )
+        assert first_attempt < LOOP_SECONDS
+
+
+def test_attempt_loop_calls_the_verifier_network_on_the_same_server():
+    assert "/docs_qa/verifier" in agent(ASSISTANT, "attempt_loop")["args"]["tools"]

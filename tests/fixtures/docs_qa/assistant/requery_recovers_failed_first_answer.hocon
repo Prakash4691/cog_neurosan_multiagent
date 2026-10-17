@@ -20,7 +20,9 @@
             "text": "In Express 4.21, how do I make an error thrown inside an async route handler reach my error-handling middleware?",
             "response": {
                 "text": {
-                    "keywords": ["next(", "[1]", "Sources", "(Context7)", "Verified against"],
+                    # "next", not "next(": a correct reply that passes errors with .catch(next) has no "next(" in
+                    # it (run of 2026-10-16).
+                    "keywords": ["next", "[1]", "Sources", "(Context7)", "Verified against"],
                     "not_keywords": ["Not verified", "excerpt_ids", "\"quote\""]
                 }
             }
